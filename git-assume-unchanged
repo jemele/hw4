@@ -1,0 +1,5 @@
+#!/bin/sh
+# track files that are required by plan ahead, but are overwritten with each
+# project run. The assume unchanged to the index is not pushed, so this command
+# must be run after initial project creation.
+git update-index --assume-unchanged */*.data/runs/runs.xml
