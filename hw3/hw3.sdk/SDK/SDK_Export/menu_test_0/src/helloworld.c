@@ -443,9 +443,63 @@ void user_input_X_Y(XGpioPs *gpio, i2c_t *i2c, u8 addr, int *xx, int*yy) {
     } while (sel != 16);
     printf("x: %d\n", x);
     printf("y: %d\n", y);
-//    xx = &x;
- //   yy = &y;
+	*xx = x;
+    *yy = y;
     //now run the x,y coordinates
+}
+
+void user_input_FIFO(XGpioPs *gpio, i2c_t *i2c, u8 addr, char *FIFO, int size) {
+    ssd1306_clear(i2c);
+    display_string(i2c, addr, "Up Arrow: FWD");
+    ssd1306_set_page_start(i2c, 0x01);
+    display_string(i2c, addr, "Down Arrow: REV");
+    ssd1306_set_page_start(i2c, 0x02);
+    display_string(i2c, addr, "Left Arrow: LEFT");
+    ssd1306_set_page_start(i2c, 0x03);
+    display_string(i2c, addr, "Right Arrow: RIGHT");
+    ssd1306_set_page_start(i2c, 0x04);
+    display_string(i2c, addr, "Center: RETURN");
+    u32 sel = 0;
+    int i=0;
+    char text[30];
+    do {
+    	sel = readButtons(gpio);
+    	if (sel == 2){
+    		FIFO[i] = 'R';
+    		strcpy(text, "Right Turn    ");
+    	}
+
+    	if (sel == 4){
+    		FIFO[i] = 'L';
+    		strcpy(text, "Left Turn     ");
+    	}
+    	if (sel == 1){
+    		FIFO[i] = 'F';
+    		strcpy(text, "Forward       ");
+    	}
+
+    	if (sel == 8){
+    		FIFO[i] = 'R';
+    		strcpy(text, "Reverse       ");
+    	}
+
+    	if (sel == 16){
+    		FIFO[i] = 'Q';
+    		strcpy(text, "Return        "); // return to base station
+    	}
+
+    	printf("%d, %c\n", i, FIFO[i]);
+    	i++;
+    	char text1[30];
+		ssd1306_set_page_start(i2c, 6);
+    	snprintf(text1, sizeof(text1), "Task %d Scheduled", i);
+	    display_string(i2c, addr, text1);
+
+		ssd1306_set_page_start(i2c, 7);
+	    display_string(i2c, addr, text);
+    } while ((sel != 16)&&(i<size));
+    FIFO[size-1] = 'Q';  // this makes sure the last task is a return command1
+
 }
 
 void user_input_search_duration(XGpioPs *gpio, i2c_t *i2c, u8 addr, int *time) {
@@ -466,11 +520,12 @@ void user_input_search_duration(XGpioPs *gpio, i2c_t *i2c, u8 addr, int *time) {
     		t-=5;
     	}
     	snprintf(tChar, sizeof(tChar), "%d      ", t);
-    	ssd1306_clear_line(i2c, 0);
+
+		ssd1306_set_page_start(i2c, 0);
 	    display_string(i2c, addr, "time: ");
 	    display_string(i2c, addr, tChar);
     } while (selct != 16);
-    //time = &t;
+    *time = t;
 }
 
 
@@ -527,9 +582,6 @@ int main()
         return status;
     }
     int i = 0;
-    for(i=0; i< sizeof(Inspire); i++) {
-    	i2c_data(&oled.device, oled_addr, Inspire[i]);
-    }
 
     XGpioPs gpio;
     status = initialize_gpio(&gpio);
@@ -559,7 +611,7 @@ int main()
     sleep(2);
 
  // playground area
-
+/*
     ssd1306_clear(&oled);
     int map[8192];
     for(i = 0; i < 8192; i++) {
@@ -573,11 +625,14 @@ int main()
 
     write_pixel(&gpio, &oled, oled_addr, 0, 63, map);
     write_pixel(&gpio, &oled, oled_addr, 127, 0, map);
+*/
 // end playground area
     u8 selection = 5;
 
 	int x, y, t;
 	char task[50];
+	char FIFO[50];
+	printf("Size of FIFO %d\n", sizeof(FIFO));
     while (1){
     	//main menu
     	selection = mainMenu(&gpio, &oled, oled_addr);
@@ -589,12 +644,18 @@ int main()
 
         	case (1) :
         		//run user directed vector
+				user_input_FIFO(&gpio, &oled, oled_addr, &FIFO, sizeof(FIFO));
+			    printf("\n");
+			    for (i=0; i<sizeof(FIFO); i++) {
+			    	printf("%d, %c\n", i, FIFO[i]);
+			    }
 				strcpy(task, "User defined route");
         	    break;
 
         	case (2) :
         		//run user directed coordinate
         		user_input_X_Y(&gpio,&oled, oled_addr, &x, &y);
+	    		printf("\nx %d, y %d\n", x, y);
         		strcpy(task, "X,Y Coordinate");
         		//some function in terms of x,y
         	    break;
@@ -602,6 +663,7 @@ int main()
         	case (3) :
         		//search
 				user_input_search_duration(&gpio, &oled, oled_addr, &t);
+    			printf("\nt %d\n",t);
 				strcpy(task, "Area Map/Search");
         	    break;
         }
