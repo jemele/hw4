@@ -17,6 +17,7 @@ typedef struct {
 int uart_initialize(uart_t *uart);
 
 // Send the specified data.
-void uart_send(uart_t *uart, const u8 *data, int count);
+void uart_send(uart_t *uart, const u8 data);
+void uart_sendv(uart_t *uart, const u8 *data, int count);
 
 #endif
