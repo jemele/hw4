@@ -409,40 +409,42 @@ void user_input_X_Y(XGpioPs *gpio, i2c_t *i2c, u8 addr, int *xx, int*yy) {
     display_string(i2c, addr, "x: 0");
     ssd1306_set_page_start(i2c, 0x01);
     display_string(i2c, addr, "y: 0");
-    u32 selection = 0;
-    char xChar;
-    char yChar;
+    u32 sel = 0;
+    char xChar[4];
+    char yChar[4];
     do {
-    	selection = readButtons(gpio);
-    	if (selection == 2){
+    	sel = readButtons(gpio);
+    	if ((sel == 2)&&(x<63)){
     		x++;
-    		printf("%d\n",x);
     	}
 
-    	if (selection == 4){
+    	if ((sel == 4)&&(x>-64)){
+    		printf("x: %d\n", x);
     		x--;
     	}
-    	if (selection == 1){
+    	if ((sel == 1)&&(y<31)){
     		y++;
     	}
 
-    	if (selection == 8){
+    	if ((sel == 8)&&(y>-32)){
     		y--;
     	}
-    	itoa(x, xChar);
-    	ssd1306_clear_line(i2c, 0);
+
+    	snprintf(xChar, sizeof(xChar), "%d     ", x);
+		ssd1306_set_page_start(i2c, 0);
 	    display_string(i2c, addr, "x: ");
 	    display_string(i2c, addr, xChar);
 
-    	itoa(y, yChar);
-    	ssd1306_clear_line(i2c, 1);
+
+    	snprintf(yChar, sizeof(yChar), "%d    ", y);
+		ssd1306_set_page_start(i2c, 1);
 	    display_string(i2c, addr, "y: ");
 	    display_string(i2c, addr, yChar);
-    } while (selection != 16);
+    } while (sel != 16);
     printf("x: %d\n", x);
     printf("y: %d\n", y);
-    xx = &x;
-    yy = &y;
+//    xx = &x;
+ //   yy = &y;
     //now run the x,y coordinates
 }
 
@@ -452,76 +454,55 @@ void user_input_search_duration(XGpioPs *gpio, i2c_t *i2c, u8 addr, int *time) {
     display_string(i2c, addr, "time: 0");
     ssd1306_set_page_start(i2c, 0x01);
     display_string(i2c, addr, "5s increments");
-    u32 selection = 0;
-    char tChar;
+    u32 selct = 0;
+    char tChar[5];
     do {
-    	selection = readButtons(gpio);
-    	if (selection == 1){
+    	selct = readButtons(gpio);
+    	if (selct == 1){
     		t+=5;
     	}
 
-    	if (selection == 8){
+    	if ((t>0)&&(selct == 8)){
     		t-=5;
     	}
-    	itoa(t, tChar);
+    	snprintf(tChar, sizeof(tChar), "%d      ", t);
     	ssd1306_clear_line(i2c, 0);
 	    display_string(i2c, addr, "time: ");
 	    display_string(i2c, addr, tChar);
-    } while (selection != 16);
-    time = &t;
+    } while (selct != 16);
+    //time = &t;
 }
 
-void itoa(int n, char s[])
-{
-    int i, sign;
-
-    if ((sign = n) < 0)  /* record sign */
-        n = -n;          /* make n positive */
-    i = 0;
-    do {       /* generate digits in reverse order */
-        s[i++] = n % 10 + '0';   /* get next digit */
-    } while ((n /= 10) > 0);     /* delete it */
-    if (sign < 0)
-        s[i++] = '-';
-    s[i] = '\0';
-    reverse(s);
-}
-
-void reverse(char s[])
-{
-    int i, j;
-    char c;
-
-    for (i = 0, j = strlen(s)-1; i<j; i++, j--) {
-        c = s[i];
-        s[i] = s[j];
-        s[j] = c;
-    }
-}
 
 void write_pixel(XGpioPs *gpio, i2c_t *i2c, u8 addr, u8 x, u8 y, int map[]){
 	//origin for the device is in the center of the map
-//	x += 64;
-//	y += 32;
+	x += 64;
+	y=-1*y;
+	y += 32;
 	u8 page = 0;
 	//we no from x what column to write to, but must figure out which page to write to
 	//now we figure out the page
-	u8 data = 0;
+	u8 data = 0x00;
 	int i = y;
 	while (i>8) {
 		page++;
 		i -= 8;
 	}
-    printf("page: %h\n", page);
+    printf("page: %d column: %d \n", page, x);
 
-	int indexCount = page*127+x;
+	int indexCount = page*127*8+x;
+	int placeHolder;
 	for (i=0; i<8; i++) {
-		data += (2^i);// * map[indexCount];
+		placeHolder =(1<<i);
+		data += placeHolder*map[indexCount];
+	    printf("data: %d\n", data);
 		indexCount += 128;
 	}
+    printf("data: %d indexCount: %d\n", data, indexCount);
 	ssd1306_set_page_start(i2c, page);
 	ssd1306_set_col_start(i2c, x);
 	i2c_data(&i2c->device, addr, data);
+	ssd1306_set_page_start(i2c, 0);
 }
 
 int main()
@@ -592,7 +573,6 @@ int main()
 
     write_pixel(&gpio, &oled, oled_addr, 0, 63, map);
     write_pixel(&gpio, &oled, oled_addr, 127, 0, map);
-    sleep(15);
 // end playground area
     u8 selection = 5;
 
@@ -604,30 +584,32 @@ int main()
         switch (selection) {
         	case (0) :
         		//run the preprogrammed route
-        		strcpy(task, "programmed route complete");
+        		strcpy(task, "Programmed route");
         		break;
 
         	case (1) :
         		//run user directed vector
-				strcpy(task, "User defined route complete");
+				strcpy(task, "User defined route");
         	    break;
 
         	case (2) :
         		//run user directed coordinate
         		user_input_X_Y(&gpio,&oled, oled_addr, &x, &y);
-        		strcpy(task, "X,Y Coordinate Complete");
+        		strcpy(task, "X,Y Coordinate");
         		//some function in terms of x,y
         	    break;
 
         	case (3) :
         		//search
 				user_input_search_duration(&gpio, &oled, oled_addr, &t);
-				strcpy(task, "Search Complete");
+				strcpy(task, "Area Map/Search");
         	    break;
         }
 
         ssd1306_clear(&oled);
     	display_string(&oled, oled_addr, task);
+    	ssd1306_set_page_start(&oled, 1);
+    	display_string(&oled, oled_addr, "Complete");
     	readButtons(&gpio);
     }
     return 0;
