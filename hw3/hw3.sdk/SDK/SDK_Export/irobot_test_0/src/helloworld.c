@@ -3,16 +3,10 @@
 #include <stdio.h>
 #include <unistd.h>
 #include "platform.h"
-#include <xuartps.h>
+#include "gpio.h"
+#include "uart.h"
 
-// A convenient struct to bundle xpsuart information.
-typedef struct {
-    int id;
-    int baud_rate;
-    XUartPs_Config *config;
-    XUartPs device;
-} uart_t;
-
+// Application driver.
 int main()
 {
     init_platform();
@@ -21,6 +15,20 @@ int main()
 
     int status;
 
+    // Configure buttons. We'll use this to walk through a demonstration.
+    // This also gives us a chance to vet the buttons interface more generally.
+    gpio_t gpio = {
+        .id = XPAR_AXI_GPIO_0_DEVICE_ID,
+    };
+    printf("initializing gpio\n");
+    status = gpio_initialize(&gpio);
+    if (status) {
+        printf("gpio_initialize failed %d\n", status);
+        return status;
+    }
+    printf("waiting for button press\n");
+    gpio_blocking_read(&gpio);
+
     // Configure the serial settings to 57600 baud, 8 data bits, 1 stop bit,
     // and no flow control.
     uart_t uart0 = {
@@ -28,59 +36,52 @@ int main()
         .baud_rate = 57600,
         .config = 0,
     };
-    printf("uart0 lookup config\n");
-    uart0.config = XUartPs_LookupConfig(uart0.id);
-    if (!uart0.config) {
-        printf("XUartPs_LookupConfig failed for %d\n", uart0.id);
-        return 1;
-    }
-    printf("uart0 config initialize\n");
-    status = XUartPs_CfgInitialize(&uart0.device, uart0.config,
-            uart0.config->BaseAddress);
+    status = uart_initialize(&uart0);
     if (status) {
-        printf("XUartPs_CfgInitialize failed %d\n", status);
-        return status;
-    }
-    printf("uart0 set baud rate\n");
-    status = XUartPs_SetBaudRate(&uart0.device, uart0.baud_rate);
-    if (status) {
-        printf("XUartPs_SetBaudRate %d %d\n", uart0.baud_rate, status);
+        printf("uart_initialize failed %d\n", status);
         return status;
     }
 
     printf("uart0 issuing play commands\n");
     const u8 cmd_mode_full[] = {128,132}; // (Puts the robot in Full mode)
-    const u8 cmd_song_program[] = {140,0,4,62,12,66,12,69,12,74,36}; // (Defines the song)
+    const u8 cmd_song_program[] = {140,0,4,62,12,66,12,69,12,74,36};
     const u8 cmd_song_play[] = {141,0}; // (Plays the song)
 
-    // Note: this prefers XUartPs_SendByte over XUartPs_Send because the latter
-    // tries to coexist with interrupts -- an unnecessary operation given the
-    // current configuration.
     int i;
     printf("uart0 mode full\n");
-    for (i = 0; i < sizeof(cmd_mode_full); ++i) {
-        XUartPs_SendByte(uart0.config->BaseAddress, cmd_mode_full[i]);
-    }
+    uart_send(&uart0, cmd_mode_full, sizeof(cmd_mode_full));
     printf("uart0 song program\n");
-    for (i = 0; i < sizeof(cmd_song_program); ++i) {
-        XUartPs_SendByte(uart0.config->BaseAddress, cmd_song_program[i]);
-    }
+    uart_send(&uart0, cmd_song_program, sizeof(cmd_song_program));
 
-    printf("press enter to play song\n");
-    getchar();
+    printf("waiting for button press to play song");
+    gpio_blocking_read(&gpio);
 
-    // Play the song many times for video sake.
+#if 0
     // In mother russia, video plays YOU!
-    int j;
-    for (j = 0; j < 3; ++j) {
     printf("uart0 song play\n");
-    for (i = 0; i < sizeof(cmd_song_play); ++i) {
-        XUartPs_SendByte(uart0.config->BaseAddress, cmd_song_play[i]);
-    }
+    uart_send(&uart0, cmd_song_play, sizeof(cmd_song_play));
+#endif
 
-    // We must delay for the duration of the song. Commands sent while other
-    // commands are being processed have no effect.
-    usleep(3 * 500 * 1000);
+    u32 buttons;
+    for (;;) {
+        printf("press center button to end, arrow keys to move\n");
+        buttons = gpio_blocking_read(&gpio);
+        if (button_center_pressed(buttons)) {
+            printf("goodbye!\n");
+            break;
+        }
+        if (button_up_pressed(buttons)) {
+            printf("forward\n");
+        }
+        if (button_down_pressed(buttons)) {
+            printf("backwards\n");
+        }
+        if (button_left_pressed(buttons)) {
+            printf("left\n");
+        }
+        if (button_right_pressed(buttons)) {
+            printf("right\n");
+        }
     }
 
     return 0;
