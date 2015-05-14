@@ -31,6 +31,11 @@ int uart_initialize(uart_t *uart)
 }
 
 
+u8 uart_recv(uart_t *uart)
+{
+    return XUartPs_RecvByte(uart->config->BaseAddress);
+}
+
 // Send the specified data.
 void uart_send(uart_t *uart, const u8 data)
 {

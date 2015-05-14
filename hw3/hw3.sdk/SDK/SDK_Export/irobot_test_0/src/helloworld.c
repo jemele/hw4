@@ -6,6 +6,77 @@
 #include "gpio.h"
 #include "uart.h"
 
+// Rotate left.
+void irobot_rotate_left(uart_t *uart)
+{
+    printf("ccw 90 degrees\n");
+    const s16 speed = 100; //mm/s
+    const s16 angle = 90;
+
+    // rotate ccw 90 degrees and stop
+    const u8 c[] = {152,13,
+        137,(speed>>8)&0xff,speed&0xff,0,1,
+        157,(angle>>8)&0xff,angle&0xff,
+        137,0,0,0,0};
+    uart_sendv(uart,c,sizeof(c));
+
+    // Verify we can read the program back.
+    usleep(1000*100);
+    uart_send(uart,154);
+    usleep(1000*100);
+    int bytes = uart_recv(uart);
+    printf("%d program bytes\n", bytes);
+    int i;
+    for (i = 0; i < bytes; ++i) {
+        u8 d = uart_recv(uart);
+        printf("%d,", d);
+    }
+    printf("\n");
+
+    // Run the program.
+    uart_send(uart,153);
+
+    // Wait for the program to complete.
+    // Ideally, this would be derived from the rotational velocity.
+    usleep(1000 * 1000);
+}
+
+// Rotate right.
+void irobot_rotate_right(uart_t *uart)
+{
+    printf("cw 90 degrees\n");
+    const s16 speed = 100; //mm/s
+    const s16 angle = -90;
+
+    // rotate cw 90 degrees and stop
+    const u8 c[] = {152,13,
+        137,(speed>>8)&0xff,speed&0xff,0xff,0xff,
+        157,(angle>>8)&0xff,angle&0xff,
+        137,0,0,0,0};
+    uart_sendv(uart,c,sizeof(c));
+
+    // Verify we can read the program back.
+    usleep(1000*100);
+    uart_send(uart,154);
+    usleep(1000*100);
+    int bytes = uart_recv(uart);
+    printf("%d program bytes\n", bytes);
+    int i;
+    for (i = 0; i < bytes; ++i) {
+        u8 d = uart_recv(uart);
+        printf("%d,", d);
+    }
+    printf("\n");
+
+    // Run the program.
+    uart_send(uart,153);
+
+    // Wait for the program to complete.
+    // Ideally, this would be derived from the rotational velocity.
+    usleep(1000 * 1000);
+}
+
+
 // Application driver.
 int main()
 {
@@ -63,7 +134,7 @@ int main()
             printf("goodbye!\n");
             break;
         }
-        // Rate limit command to 4Hz.
+        // Rate limit command input to 4Hz.
         usleep(250 * 1000);
 
         // Process combo buttons first.
@@ -110,16 +181,12 @@ int main()
         // Left and run control in place turning.
         if (button_left_pressed(buttons)) {
             printf("left\n");
-            printf("ccw %d mm/s\n", speed);
-            const u8 c[] = {137,(speed>>8)&0xff,speed&0xff,0,1};
-            uart_sendv(&uart0,c,sizeof(c));
+            irobot_rotate_left(&uart0);
             continue;
         }
         if (button_right_pressed(buttons)) {
             printf("right\n");
-            printf("cw %d mm/s\n", speed);
-            const u8 c[] = {137,(speed>>8)&0xff,speed&0xff,0xff,0xff};
-            uart_sendv(&uart0,c,sizeof(c));
+            irobot_rotate_right(&uart0);
             continue;
         }
     }
