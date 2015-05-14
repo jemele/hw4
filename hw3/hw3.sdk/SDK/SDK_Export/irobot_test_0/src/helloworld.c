@@ -4,78 +4,8 @@
 #include <unistd.h>
 #include "platform.h"
 #include "gpio.h"
+#include "irobot.h"
 #include "uart.h"
-
-// Rotate left.
-void irobot_rotate_left(uart_t *uart)
-{
-    printf("ccw 90 degrees\n");
-    const s16 speed = 100; //mm/s
-    const s16 angle = 90;
-
-    // rotate ccw 90 degrees and stop
-    const u8 c[] = {152,13,
-        137,(speed>>8)&0xff,speed&0xff,0,1,
-        157,(angle>>8)&0xff,angle&0xff,
-        137,0,0,0,0};
-    uart_sendv(uart,c,sizeof(c));
-
-    // Verify we can read the program back.
-    usleep(1000*100);
-    uart_send(uart,154);
-    usleep(1000*100);
-    int bytes = uart_recv(uart);
-    printf("%d program bytes\n", bytes);
-    int i;
-    for (i = 0; i < bytes; ++i) {
-        u8 d = uart_recv(uart);
-        printf("%d,", d);
-    }
-    printf("\n");
-
-    // Run the program.
-    uart_send(uart,153);
-
-    // Wait for the program to complete.
-    // Ideally, this would be derived from the rotational velocity.
-    usleep(1000 * 1000);
-}
-
-// Rotate right.
-void irobot_rotate_right(uart_t *uart)
-{
-    printf("cw 90 degrees\n");
-    const s16 speed = 100; //mm/s
-    const s16 angle = -90;
-
-    // rotate cw 90 degrees and stop
-    const u8 c[] = {152,13,
-        137,(speed>>8)&0xff,speed&0xff,0xff,0xff,
-        157,(angle>>8)&0xff,angle&0xff,
-        137,0,0,0,0};
-    uart_sendv(uart,c,sizeof(c));
-
-    // Verify we can read the program back.
-    usleep(1000*100);
-    uart_send(uart,154);
-    usleep(1000*100);
-    int bytes = uart_recv(uart);
-    printf("%d program bytes\n", bytes);
-    int i;
-    for (i = 0; i < bytes; ++i) {
-        u8 d = uart_recv(uart);
-        printf("%d,", d);
-    }
-    printf("\n");
-
-    // Run the program.
-    uart_send(uart,153);
-
-    // Wait for the program to complete.
-    // Ideally, this would be derived from the rotational velocity.
-    usleep(1000 * 1000);
-}
-
 
 // Application driver.
 int main()
@@ -120,10 +50,7 @@ int main()
     uart_sendv(&uart0, cmd_song_program, sizeof(cmd_song_program));
 
     // Do a movement demo.
-    s16 speed = 0;
-    const s16 speed_max = 30;
-    const s16 speed_min = -speed_max;
-    const s16 speed_delta = 5;
+    const s16 unit_distance_mm = 26; // ~1 inch
     u32 buttons;
     for (;;) {
         // XXX This interface sucks.
@@ -158,23 +85,13 @@ int main()
         // Process single buttons next.
         // Forward backwards control direct movement forware and backwards.
         if (button_up_pressed(buttons)) {
-            speed -= speed_delta;
-            if (speed < speed_min) {
-                speed = speed_min;
-            }
-            printf("forward %d mm/s\n", speed);
-            const u8 c[] = {137,(speed>>8)&0xff,speed&0xff,0x80,0};
-            uart_sendv(&uart0,c,sizeof(c));
+            printf("backward\n");
+            irobot_drive_straight(&uart0,-unit_distance_mm);
             continue;
         }
         if (button_down_pressed(buttons)) {
-            speed += speed_delta;
-            if (speed > speed_max) {
-                speed = speed_max;
-            }
-            printf("forward %d mm/s\n", speed);
-            const u8 c[] = {137,(speed>>8)&0xff,speed&0xff,0x80,0};
-            uart_sendv(&uart0,c,sizeof(c));
+            printf("forward\n");
+            irobot_drive_straight(&uart0,unit_distance_mm);
             continue;
         }
 
