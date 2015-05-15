@@ -39,7 +39,6 @@ int main()
     uart_t uart0 = {
         .id = XPAR_PS7_UART_0_DEVICE_ID,
         .baud_rate = 57600,
-        .config = 0,
     };
     status = uart_initialize(&uart0);
     if (status) {
