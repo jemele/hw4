@@ -15,7 +15,7 @@
 #include <stdint.h>
 
 static const u8 oled_addr = 0x3c;
-static const int oled_reset_pin = 9;
+static const int oled_reset_pin = 0;
 static const int i2c_write_delay = 300; // us
 
 // Write a command out to the specified i2c device.
@@ -571,7 +571,7 @@ int main()
     int status;
 
     i2c_t oled = {
-        .id = XPAR_PS7_I2C_0_DEVICE_ID,
+        .id = XPAR_PS7_I2C_1_DEVICE_ID,
         .clock = 100000,
         .clear_options = XIICPS_10_BIT_ADDR_OPTION,
         .options = XIICPS_7_BIT_ADDR_OPTION,
