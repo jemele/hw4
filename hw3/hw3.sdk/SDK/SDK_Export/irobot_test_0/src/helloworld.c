@@ -7,6 +7,12 @@
 #include "irobot.h"
 #include "uart.h"
 
+// Practice movement primitives.
+static void irobot_movement_demo(gpio_t *gpio, uart_t *uart);
+
+// Verify sensor input works for group 6 (all sensor data).
+static void irobot_sensor_demo0(gpio_t *gpio, uart_t *uart);
+
 // Application driver.
 int main()
 {
@@ -49,6 +55,14 @@ int main()
     const u8 cmd_song_program[] = {140,0,4,62,12,66,12,69,12,74,36};
     uart_sendv(&uart0, cmd_song_program, sizeof(cmd_song_program));
 
+    irobot_movement_demo(&gpio, &uart0);
+    irobot_sensor_demo0(&gpio, &uart0);
+
+    return 0;
+}
+
+static void irobot_movement_demo(gpio_t *gpio, uart_t *uart)
+{
     // Do a movement demo.
     printf("movement demo\n");
     const s16 unit_distance_mm = 26; // ~1 inch
@@ -57,7 +71,7 @@ int main()
         // XXX This interface sucks.
         // It would be much nicer to have something that samples until non-zero,
         // and then samples until zero again.
-        buttons = gpio_blocking_read(&gpio);
+        buttons = gpio_blocking_read(gpio);
         if (button_center_pressed(buttons)) {
             printf("goodbye!\n");
             break;
@@ -72,14 +86,14 @@ int main()
                 button_left_pressed(buttons)) {
             printf("safe mode\n");
             const u8 c[] = {128,131};
-            uart_sendv(&uart0,c,sizeof(c));
+            uart_sendv(uart,c,sizeof(c));
             continue;
         }
         if (button_up_pressed(buttons) &&
                 button_down_pressed(buttons)) {
             printf("play song\n");
             const u8 c[] = {141,0};
-            uart_sendv(&uart0,c,sizeof(c));
+            uart_sendv(uart,c,sizeof(c));
             continue;
         }
 
@@ -87,33 +101,37 @@ int main()
         // Forward backwards control direct movement forware and backwards.
         if (button_up_pressed(buttons)) {
             printf("backward\n");
-            irobot_drive_straight(&uart0,-unit_distance_mm);
+            irobot_drive_straight(uart,-unit_distance_mm);
             continue;
         }
         if (button_down_pressed(buttons)) {
             printf("forward\n");
-            irobot_drive_straight(&uart0,unit_distance_mm);
+            irobot_drive_straight(uart,unit_distance_mm);
             continue;
         }
 
         // Left and run control in place turning.
         if (button_left_pressed(buttons)) {
             printf("left\n");
-            irobot_rotate_left(&uart0);
+            irobot_rotate_left(uart);
             continue;
         }
         if (button_right_pressed(buttons)) {
             printf("right\n");
-            irobot_rotate_right(&uart0);
+            irobot_rotate_right(uart);
             continue;
         }
     }
+}
 
+static void irobot_sensor_demo0(gpio_t *gpio, uart_t *uart)
+{
     // Do a sensor demo.
     sleep(1);
     printf("sensor demo\n");
+    u32 buttons;
     for (;;) {
-        buttons = gpio_blocking_read(&gpio);
+        buttons = gpio_blocking_read(gpio);
         if (button_center_pressed(buttons)) {
             printf("goodbye!\n");
             break;
@@ -122,12 +140,12 @@ int main()
         sleep(1);
         printf("querying *all* sensor data\n");
         const u8 c[] = {142,6};
-        uart_sendv(&uart0,c,sizeof(c));
+        uart_sendv(uart,c,sizeof(c));
 
         int i;
         u8 sensor_data[52];
         for (i = 0; i < sizeof(sensor_data); ++i) {
-            sensor_data[i] = uart_recv(&uart0);
+            sensor_data[i] = uart_recv(uart);
         }
 
         const int sensor_packet_to_offset[] = {
@@ -191,6 +209,4 @@ int main()
         d = &sensor_data[sensor_packet_to_offset[39]];
         printf("velocity %d\n", (d[0]<<8)|d[1]);
     }
-
-    return 0;
 }
