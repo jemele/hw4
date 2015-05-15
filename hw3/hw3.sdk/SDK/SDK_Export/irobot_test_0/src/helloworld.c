@@ -50,6 +50,7 @@ int main()
     uart_sendv(&uart0, cmd_song_program, sizeof(cmd_song_program));
 
     // Do a movement demo.
+    printf("movement demo\n");
     const s16 unit_distance_mm = 26; // ~1 inch
     u32 buttons;
     for (;;) {
@@ -106,6 +107,89 @@ int main()
             irobot_rotate_right(&uart0);
             continue;
         }
+    }
+
+    // Do a sensor demo.
+    sleep(1);
+    printf("sensor demo\n");
+    for (;;) {
+        buttons = gpio_blocking_read(&gpio);
+        if (button_center_pressed(buttons)) {
+            printf("goodbye!\n");
+            break;
+        }
+        // Rate limit command input to 1Hz.
+        sleep(1);
+        printf("querying *all* sensor data\n");
+        const u8 c[] = {142,6};
+        uart_sendv(&uart0,c,sizeof(c));
+
+        int i;
+        u8 sensor_data[52];
+        for (i = 0; i < sizeof(sensor_data); ++i) {
+            sensor_data[i] = uart_recv(&uart0);
+        }
+
+        const int sensor_packet_to_offset[] = {
+            [7]  0,
+            [8]  1,
+            [9]  2,
+            [10] 3,
+            [11] 4,
+            [12] 5,
+            [13] 6,
+            [14] 7,
+            [15] 8,
+            [16] 9,
+            [17] 10,
+            [18] 11,
+            [19] 12,
+            [20] 14,
+            [21] 16,
+            [22] 17,
+            [23] 19,
+            [24] 21,
+            [25] 22,
+            [26] 24,
+            [27] 26,
+            [28] 28,
+            [29] 30,
+            [30] 32,
+            [31] 34,
+            [32] 36,
+            [33] 37,
+            [34] 39,
+            [35] 40,
+            [36] 41,
+            [37] 42,
+            [38] 43,
+            [39] 44,
+            [40] 46,
+            [41] 48,
+            [42] 50
+        };
+        const u8 *d = &sensor_data[sensor_packet_to_offset[7]];
+        printf("wcaster %d wleft %d wright %d bleft %d bright %d\n",
+                (d[0] >> 4) & 1,
+                (d[0] >> 3) & 1,
+                (d[0] >> 2) & 1,
+                (d[0] >> 1) & 1,
+                (d[0] >> 0) & 1);
+        d = &sensor_data[sensor_packet_to_offset[8]];
+        printf("wall %d cleft %d cfleft %d cfright %d cright %d\n",
+                d[0],d[1],d[2],d[3],d[4]);
+        d = &sensor_data[sensor_packet_to_offset[27]];
+        printf("wall signal %d\n", (d[0]<<8)|d[1]);
+        d = &sensor_data[sensor_packet_to_offset[28]];
+        printf("cleft signal %d\n", (d[0]<<8)|d[1]);
+        d = &sensor_data[sensor_packet_to_offset[29]];
+        printf("cfleft signal %d\n", (d[0]<<8)|d[1]);
+        d = &sensor_data[sensor_packet_to_offset[30]];
+        printf("cfright signal %d\n", (d[0]<<8)|d[1]);
+        d = &sensor_data[sensor_packet_to_offset[31]];
+        printf("cright signal %d\n", (d[0]<<8)|d[1]);
+        d = &sensor_data[sensor_packet_to_offset[39]];
+        printf("velocity %d\n", (d[0]<<8)|d[1]);
     }
 
     return 0;
