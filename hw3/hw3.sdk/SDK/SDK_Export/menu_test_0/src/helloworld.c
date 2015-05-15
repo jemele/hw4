@@ -15,7 +15,7 @@
 #include <stdint.h>
 
 static const u8 oled_addr = 0x3c;
-static const int oled_reset_pin = 12;
+static const int oled_reset_pin = 9;
 static const int i2c_write_delay = 300; // us
 
 // Write a command out to the specified i2c device.

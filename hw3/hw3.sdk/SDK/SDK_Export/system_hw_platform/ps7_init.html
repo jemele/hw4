@@ -16,6 +16,7 @@ td { min-width : 80px ; }
 <li>UART 0</li>
 <li>UART 1</li>
 <li>I2C 0</li>
+<li>I2C 1</li>
 <li>Timer 0</li>
 <li>Timer 1</li>
 <li>Watchdog</li>
@@ -49,8 +50,8 @@ td { min-width : 80px ; }
 <tr bgcolor="#FA4A46"><td><a name="MIO 9">MIO 9</a></td><td><a href="#GPIO">GPIO</a></td><td>gpio[9]</td><td>LVCMOS 3.3V</td><td>slow</td><td>disabled</td><td>inout</td></tr>
 <tr bgcolor="#BDB76B"><td><a name="MIO 10">MIO 10</a></td><td><a href="#I2C 0">I2C 0</a></td><td>scl</td><td>LVCMOS 3.3V</td><td>slow</td><td>enabled</td><td>inout</td></tr>
 <tr bgcolor="#BDB76B"><td><a name="MIO 11">MIO 11</a></td><td><a href="#I2C 0">I2C 0</a></td><td>sda</td><td>LVCMOS 3.3V</td><td>slow</td><td>enabled</td><td>inout</td></tr>
-<tr bgcolor="#FA4A46"><td><a name="MIO 12">MIO 12</a></td><td><a href="#GPIO">GPIO</a></td><td>gpio[12]</td><td>LVCMOS 3.3V</td><td>slow</td><td>disabled</td><td>inout</td></tr>
-<tr bgcolor="#FA4A46"><td><a name="MIO 13">MIO 13</a></td><td><a href="#GPIO">GPIO</a></td><td>gpio[13]</td><td>LVCMOS 3.3V</td><td>slow</td><td>disabled</td><td>inout</td></tr>
+<tr bgcolor="#BDB76B"><td><a name="MIO 12">MIO 12</a></td><td><a href="#I2C 1">I2C 1</a></td><td>scl</td><td>LVCMOS 3.3V</td><td>slow</td><td>enabled</td><td>inout</td></tr>
+<tr bgcolor="#BDB76B"><td><a name="MIO 13">MIO 13</a></td><td><a href="#I2C 1">I2C 1</a></td><td>sda</td><td>LVCMOS 3.3V</td><td>slow</td><td>enabled</td><td>inout</td></tr>
 <tr bgcolor="#6495ED"><td><a name="MIO 14">MIO 14</a></td><td><a href="#UART 0">UART 0</a></td><td>rx</td><td>LVCMOS 3.3V</td><td>slow</td><td>disabled</td><td>in</td></tr>
 <tr bgcolor="#6495ED"><td><a name="MIO 15">MIO 15</a></td><td><a href="#UART 0">UART 0</a></td><td>tx</td><td>LVCMOS 3.3V</td><td>slow</td><td>disabled</td><td>out</td></tr>
 <tr bgcolor="#FA4A46"><td><a name="MIO 16">MIO 16</a></td><td><a href="#GPIO">GPIO</a></td><td>gpio[16]</td><td>LVCMOS 1.8V</td><td>fast</td><td>disabled</td><td>inout</td></tr>
@@ -117,7 +118,10 @@ td { min-width : 80px ; }
 <tr bgcolor="#BDB76B"><td></td><td></td><td>scl</td><td><a href="#MIO 10">MIO 10</a></td></tr>
 <tr bgcolor="#BDB76B"><td></td><td></td><td>sda</td><td><a href="#MIO 11">MIO 11</a></td></tr>
 <tr bgcolor="#BDB76B"><td></td><td>Interrupt</td><td></td><td>Disabled</td></tr>
-<tr bgcolor="#BDB76B"><td><a name="i2c1" >I2C 1</a></td>             <td></td><td></td><td>Disabled</td></tr>
+<tr bgcolor="#BDB76B"><td><a name="I2C 1" >I2C 1</a></td>             <td></td><td></td><td>MIO 12 .. 13</td></tr>
+<tr bgcolor="#BDB76B"><td></td><td></td><td>scl</td><td><a href="#MIO 12">MIO 12</a></td></tr>
+<tr bgcolor="#BDB76B"><td></td><td></td><td>sda</td><td><a href="#MIO 13">MIO 13</a></td></tr>
+<tr bgcolor="#BDB76B"><td></td><td>Interrupt</td><td></td><td>Disabled</td></tr>
 <tr bgcolor="#8DBC8F"><td><a name="spi0" >SPI 0</a></td>             <td></td><td></td><td>Disabled</td></tr>
 <tr bgcolor="#8DBC8F"><td><a name="spi1" >SPI 1</a></td>             <td></td><td></td><td>Disabled</td></tr>
 <tr bgcolor="#DAA520"><td><a name="can0" >CAN 0</a></td>             <td></td><td></td><td>Disabled</td></tr>
@@ -1762,12 +1766,12 @@ td { min-width : 80px ; }
 <tr><td >L0_SEL</td><td class="hex">1:1</td><td class="hex">2</td><td class="hex">0</td><td class="hex">0</td></tr>
 <tr><td >L1_SEL</td><td class="hex">2:2</td><td class="hex">4</td><td class="hex">0</td><td class="hex">0</td></tr>
 <tr><td >L2_SEL</td><td class="hex">4:3</td><td class="hex">18</td><td class="hex">0</td><td class="hex">0</td></tr>
-<tr><td >L3_SEL</td><td class="hex">7:5</td><td class="hex">e0</td><td class="hex">0</td><td class="hex">0</td></tr>
+<tr><td >L3_SEL</td><td class="hex">7:5</td><td class="hex">e0</td><td class="hex">2</td><td class="hex">40</td></tr>
 <tr><td >Speed</td><td class="hex">8:8</td><td class="hex">100</td><td class="hex">0</td><td class="hex">0</td></tr>
 <tr><td >IO_Type</td><td class="hex">11:9</td><td class="hex">e00</td><td class="hex">3</td><td class="hex">600</td></tr>
-<tr><td >PULLUP</td><td class="hex">12:12</td><td class="hex">1000</td><td class="hex">0</td><td class="hex">0</td></tr>
+<tr><td >PULLUP</td><td class="hex">12:12</td><td class="hex">1000</td><td class="hex">1</td><td class="hex">1000</td></tr>
 <tr><td >DisableRcvr</td><td class="hex">13:13</td><td class="hex">2000</td><td class="hex">0</td><td class="hex">0</td></tr>
-<tr><td><b>MIO_PIN_12 @ 0XF8000730</td><td></td><td class="hex"><b>3fff</b></td><td></td><td class="hex"><b>600</b></td></tr></table>
+<tr><td><b>MIO_PIN_12 @ 0XF8000730</td><td></td><td class="hex"><b>3fff</b></td><td></td><td class="hex"><b>1640</b></td></tr></table>
 </li>
 <li><p>Register : MIO_PIN_13 @ 0XF8000734</p>
 <table border="1"> 
@@ -1776,12 +1780,12 @@ td { min-width : 80px ; }
 <tr><td >L0_SEL</td><td class="hex">1:1</td><td class="hex">2</td><td class="hex">0</td><td class="hex">0</td></tr>
 <tr><td >L1_SEL</td><td class="hex">2:2</td><td class="hex">4</td><td class="hex">0</td><td class="hex">0</td></tr>
 <tr><td >L2_SEL</td><td class="hex">4:3</td><td class="hex">18</td><td class="hex">0</td><td class="hex">0</td></tr>
-<tr><td >L3_SEL</td><td class="hex">7:5</td><td class="hex">e0</td><td class="hex">0</td><td class="hex">0</td></tr>
+<tr><td >L3_SEL</td><td class="hex">7:5</td><td class="hex">e0</td><td class="hex">2</td><td class="hex">40</td></tr>
 <tr><td >Speed</td><td class="hex">8:8</td><td class="hex">100</td><td class="hex">0</td><td class="hex">0</td></tr>
 <tr><td >IO_Type</td><td class="hex">11:9</td><td class="hex">e00</td><td class="hex">3</td><td class="hex">600</td></tr>
-<tr><td >PULLUP</td><td class="hex">12:12</td><td class="hex">1000</td><td class="hex">0</td><td class="hex">0</td></tr>
+<tr><td >PULLUP</td><td class="hex">12:12</td><td class="hex">1000</td><td class="hex">1</td><td class="hex">1000</td></tr>
 <tr><td >DisableRcvr</td><td class="hex">13:13</td><td class="hex">2000</td><td class="hex">0</td><td class="hex">0</td></tr>
-<tr><td><b>MIO_PIN_13 @ 0XF8000734</td><td></td><td class="hex"><b>3fff</b></td><td></td><td class="hex"><b>600</b></td></tr></table>
+<tr><td><b>MIO_PIN_13 @ 0XF8000734</td><td></td><td class="hex"><b>3fff</b></td><td></td><td class="hex"><b>1640</b></td></tr></table>
 </li>
 <li><p>Register : MIO_PIN_14 @ 0XF8000738</p>
 <table border="1"> 
@@ -2885,6 +2889,7 @@ td { min-width : 80px ; }
 <li>UART 0</li>
 <li>UART 1</li>
 <li>I2C 0</li>
+<li>I2C 1</li>
 <li>Timer 0</li>
 <li>Timer 1</li>
 <li>Watchdog</li>
@@ -2918,8 +2923,8 @@ td { min-width : 80px ; }
 <tr bgcolor="#FA4A46"><td><a name="MIO 9">MIO 9</a></td><td><a href="#GPIO">GPIO</a></td><td>gpio[9]</td><td>LVCMOS 3.3V</td><td>slow</td><td>disabled</td><td>inout</td></tr>
 <tr bgcolor="#BDB76B"><td><a name="MIO 10">MIO 10</a></td><td><a href="#I2C 0">I2C 0</a></td><td>scl</td><td>LVCMOS 3.3V</td><td>slow</td><td>enabled</td><td>inout</td></tr>
 <tr bgcolor="#BDB76B"><td><a name="MIO 11">MIO 11</a></td><td><a href="#I2C 0">I2C 0</a></td><td>sda</td><td>LVCMOS 3.3V</td><td>slow</td><td>enabled</td><td>inout</td></tr>
-<tr bgcolor="#FA4A46"><td><a name="MIO 12">MIO 12</a></td><td><a href="#GPIO">GPIO</a></td><td>gpio[12]</td><td>LVCMOS 3.3V</td><td>slow</td><td>disabled</td><td>inout</td></tr>
-<tr bgcolor="#FA4A46"><td><a name="MIO 13">MIO 13</a></td><td><a href="#GPIO">GPIO</a></td><td>gpio[13]</td><td>LVCMOS 3.3V</td><td>slow</td><td>disabled</td><td>inout</td></tr>
+<tr bgcolor="#BDB76B"><td><a name="MIO 12">MIO 12</a></td><td><a href="#I2C 1">I2C 1</a></td><td>scl</td><td>LVCMOS 3.3V</td><td>slow</td><td>enabled</td><td>inout</td></tr>
+<tr bgcolor="#BDB76B"><td><a name="MIO 13">MIO 13</a></td><td><a href="#I2C 1">I2C 1</a></td><td>sda</td><td>LVCMOS 3.3V</td><td>slow</td><td>enabled</td><td>inout</td></tr>
 <tr bgcolor="#6495ED"><td><a name="MIO 14">MIO 14</a></td><td><a href="#UART 0">UART 0</a></td><td>rx</td><td>LVCMOS 3.3V</td><td>slow</td><td>disabled</td><td>in</td></tr>
 <tr bgcolor="#6495ED"><td><a name="MIO 15">MIO 15</a></td><td><a href="#UART 0">UART 0</a></td><td>tx</td><td>LVCMOS 3.3V</td><td>slow</td><td>disabled</td><td>out</td></tr>
 <tr bgcolor="#FA4A46"><td><a name="MIO 16">MIO 16</a></td><td><a href="#GPIO">GPIO</a></td><td>gpio[16]</td><td>LVCMOS 1.8V</td><td>fast</td><td>disabled</td><td>inout</td></tr>
@@ -2986,7 +2991,10 @@ td { min-width : 80px ; }
 <tr bgcolor="#BDB76B"><td></td><td></td><td>scl</td><td><a href="#MIO 10">MIO 10</a></td></tr>
 <tr bgcolor="#BDB76B"><td></td><td></td><td>sda</td><td><a href="#MIO 11">MIO 11</a></td></tr>
 <tr bgcolor="#BDB76B"><td></td><td>Interrupt</td><td></td><td>Disabled</td></tr>
-<tr bgcolor="#BDB76B"><td><a name="i2c1" >I2C 1</a></td>             <td></td><td></td><td>Disabled</td></tr>
+<tr bgcolor="#BDB76B"><td><a name="I2C 1" >I2C 1</a></td>             <td></td><td></td><td>MIO 12 .. 13</td></tr>
+<tr bgcolor="#BDB76B"><td></td><td></td><td>scl</td><td><a href="#MIO 12">MIO 12</a></td></tr>
+<tr bgcolor="#BDB76B"><td></td><td></td><td>sda</td><td><a href="#MIO 13">MIO 13</a></td></tr>
+<tr bgcolor="#BDB76B"><td></td><td>Interrupt</td><td></td><td>Disabled</td></tr>
 <tr bgcolor="#8DBC8F"><td><a name="spi0" >SPI 0</a></td>             <td></td><td></td><td>Disabled</td></tr>
 <tr bgcolor="#8DBC8F"><td><a name="spi1" >SPI 1</a></td>             <td></td><td></td><td>Disabled</td></tr>
 <tr bgcolor="#DAA520"><td><a name="can0" >CAN 0</a></td>             <td></td><td></td><td>Disabled</td></tr>
@@ -4662,12 +4670,12 @@ td { min-width : 80px ; }
 <tr><td >L0_SEL</td><td class="hex">1:1</td><td class="hex">2</td><td class="hex">0</td><td class="hex">0</td></tr>
 <tr><td >L1_SEL</td><td class="hex">2:2</td><td class="hex">4</td><td class="hex">0</td><td class="hex">0</td></tr>
 <tr><td >L2_SEL</td><td class="hex">4:3</td><td class="hex">18</td><td class="hex">0</td><td class="hex">0</td></tr>
-<tr><td >L3_SEL</td><td class="hex">7:5</td><td class="hex">e0</td><td class="hex">0</td><td class="hex">0</td></tr>
+<tr><td >L3_SEL</td><td class="hex">7:5</td><td class="hex">e0</td><td class="hex">2</td><td class="hex">40</td></tr>
 <tr><td >Speed</td><td class="hex">8:8</td><td class="hex">100</td><td class="hex">0</td><td class="hex">0</td></tr>
 <tr><td >IO_Type</td><td class="hex">11:9</td><td class="hex">e00</td><td class="hex">3</td><td class="hex">600</td></tr>
-<tr><td >PULLUP</td><td class="hex">12:12</td><td class="hex">1000</td><td class="hex">0</td><td class="hex">0</td></tr>
+<tr><td >PULLUP</td><td class="hex">12:12</td><td class="hex">1000</td><td class="hex">1</td><td class="hex">1000</td></tr>
 <tr><td >DisableRcvr</td><td class="hex">13:13</td><td class="hex">2000</td><td class="hex">0</td><td class="hex">0</td></tr>
-<tr><td><b>MIO_PIN_12 @ 0XF8000730</td><td></td><td class="hex"><b>3fff</b></td><td></td><td class="hex"><b>600</b></td></tr></table>
+<tr><td><b>MIO_PIN_12 @ 0XF8000730</td><td></td><td class="hex"><b>3fff</b></td><td></td><td class="hex"><b>1640</b></td></tr></table>
 </li>
 <li><p>Register : MIO_PIN_13 @ 0XF8000734</p>
 <table border="1"> 
@@ -4676,12 +4684,12 @@ td { min-width : 80px ; }
 <tr><td >L0_SEL</td><td class="hex">1:1</td><td class="hex">2</td><td class="hex">0</td><td class="hex">0</td></tr>
 <tr><td >L1_SEL</td><td class="hex">2:2</td><td class="hex">4</td><td class="hex">0</td><td class="hex">0</td></tr>
 <tr><td >L2_SEL</td><td class="hex">4:3</td><td class="hex">18</td><td class="hex">0</td><td class="hex">0</td></tr>
-<tr><td >L3_SEL</td><td class="hex">7:5</td><td class="hex">e0</td><td class="hex">0</td><td class="hex">0</td></tr>
+<tr><td >L3_SEL</td><td class="hex">7:5</td><td class="hex">e0</td><td class="hex">2</td><td class="hex">40</td></tr>
 <tr><td >Speed</td><td class="hex">8:8</td><td class="hex">100</td><td class="hex">0</td><td class="hex">0</td></tr>
 <tr><td >IO_Type</td><td class="hex">11:9</td><td class="hex">e00</td><td class="hex">3</td><td class="hex">600</td></tr>
-<tr><td >PULLUP</td><td class="hex">12:12</td><td class="hex">1000</td><td class="hex">0</td><td class="hex">0</td></tr>
+<tr><td >PULLUP</td><td class="hex">12:12</td><td class="hex">1000</td><td class="hex">1</td><td class="hex">1000</td></tr>
 <tr><td >DisableRcvr</td><td class="hex">13:13</td><td class="hex">2000</td><td class="hex">0</td><td class="hex">0</td></tr>
-<tr><td><b>MIO_PIN_13 @ 0XF8000734</td><td></td><td class="hex"><b>3fff</b></td><td></td><td class="hex"><b>600</b></td></tr></table>
+<tr><td><b>MIO_PIN_13 @ 0XF8000734</td><td></td><td class="hex"><b>3fff</b></td><td></td><td class="hex"><b>1640</b></td></tr></table>
 </li>
 <li><p>Register : MIO_PIN_14 @ 0XF8000738</p>
 <table border="1"> 
@@ -5795,6 +5803,7 @@ td { min-width : 80px ; }
 <li>UART 0</li>
 <li>UART 1</li>
 <li>I2C 0</li>
+<li>I2C 1</li>
 <li>Timer 0</li>
 <li>Timer 1</li>
 <li>Watchdog</li>
@@ -5828,8 +5837,8 @@ td { min-width : 80px ; }
 <tr bgcolor="#FA4A46"><td><a name="MIO 9">MIO 9</a></td><td><a href="#GPIO">GPIO</a></td><td>gpio[9]</td><td>LVCMOS 3.3V</td><td>slow</td><td>disabled</td><td>inout</td></tr>
 <tr bgcolor="#BDB76B"><td><a name="MIO 10">MIO 10</a></td><td><a href="#I2C 0">I2C 0</a></td><td>scl</td><td>LVCMOS 3.3V</td><td>slow</td><td>enabled</td><td>inout</td></tr>
 <tr bgcolor="#BDB76B"><td><a name="MIO 11">MIO 11</a></td><td><a href="#I2C 0">I2C 0</a></td><td>sda</td><td>LVCMOS 3.3V</td><td>slow</td><td>enabled</td><td>inout</td></tr>
-<tr bgcolor="#FA4A46"><td><a name="MIO 12">MIO 12</a></td><td><a href="#GPIO">GPIO</a></td><td>gpio[12]</td><td>LVCMOS 3.3V</td><td>slow</td><td>disabled</td><td>inout</td></tr>
-<tr bgcolor="#FA4A46"><td><a name="MIO 13">MIO 13</a></td><td><a href="#GPIO">GPIO</a></td><td>gpio[13]</td><td>LVCMOS 3.3V</td><td>slow</td><td>disabled</td><td>inout</td></tr>
+<tr bgcolor="#BDB76B"><td><a name="MIO 12">MIO 12</a></td><td><a href="#I2C 1">I2C 1</a></td><td>scl</td><td>LVCMOS 3.3V</td><td>slow</td><td>enabled</td><td>inout</td></tr>
+<tr bgcolor="#BDB76B"><td><a name="MIO 13">MIO 13</a></td><td><a href="#I2C 1">I2C 1</a></td><td>sda</td><td>LVCMOS 3.3V</td><td>slow</td><td>enabled</td><td>inout</td></tr>
 <tr bgcolor="#6495ED"><td><a name="MIO 14">MIO 14</a></td><td><a href="#UART 0">UART 0</a></td><td>rx</td><td>LVCMOS 3.3V</td><td>slow</td><td>disabled</td><td>in</td></tr>
 <tr bgcolor="#6495ED"><td><a name="MIO 15">MIO 15</a></td><td><a href="#UART 0">UART 0</a></td><td>tx</td><td>LVCMOS 3.3V</td><td>slow</td><td>disabled</td><td>out</td></tr>
 <tr bgcolor="#FA4A46"><td><a name="MIO 16">MIO 16</a></td><td><a href="#GPIO">GPIO</a></td><td>gpio[16]</td><td>LVCMOS 1.8V</td><td>fast</td><td>disabled</td><td>inout</td></tr>
@@ -5896,7 +5905,10 @@ td { min-width : 80px ; }
 <tr bgcolor="#BDB76B"><td></td><td></td><td>scl</td><td><a href="#MIO 10">MIO 10</a></td></tr>
 <tr bgcolor="#BDB76B"><td></td><td></td><td>sda</td><td><a href="#MIO 11">MIO 11</a></td></tr>
 <tr bgcolor="#BDB76B"><td></td><td>Interrupt</td><td></td><td>Disabled</td></tr>
-<tr bgcolor="#BDB76B"><td><a name="i2c1" >I2C 1</a></td>             <td></td><td></td><td>Disabled</td></tr>
+<tr bgcolor="#BDB76B"><td><a name="I2C 1" >I2C 1</a></td>             <td></td><td></td><td>MIO 12 .. 13</td></tr>
+<tr bgcolor="#BDB76B"><td></td><td></td><td>scl</td><td><a href="#MIO 12">MIO 12</a></td></tr>
+<tr bgcolor="#BDB76B"><td></td><td></td><td>sda</td><td><a href="#MIO 13">MIO 13</a></td></tr>
+<tr bgcolor="#BDB76B"><td></td><td>Interrupt</td><td></td><td>Disabled</td></tr>
 <tr bgcolor="#8DBC8F"><td><a name="spi0" >SPI 0</a></td>             <td></td><td></td><td>Disabled</td></tr>
 <tr bgcolor="#8DBC8F"><td><a name="spi1" >SPI 1</a></td>             <td></td><td></td><td>Disabled</td></tr>
 <tr bgcolor="#DAA520"><td><a name="can0" >CAN 0</a></td>             <td></td><td></td><td>Disabled</td></tr>
@@ -7450,12 +7462,12 @@ td { min-width : 80px ; }
 <tr><td >L0_SEL</td><td class="hex">1:1</td><td class="hex">2</td><td class="hex">0</td><td class="hex">0</td></tr>
 <tr><td >L1_SEL</td><td class="hex">2:2</td><td class="hex">4</td><td class="hex">0</td><td class="hex">0</td></tr>
 <tr><td >L2_SEL</td><td class="hex">4:3</td><td class="hex">18</td><td class="hex">0</td><td class="hex">0</td></tr>
-<tr><td >L3_SEL</td><td class="hex">7:5</td><td class="hex">e0</td><td class="hex">0</td><td class="hex">0</td></tr>
+<tr><td >L3_SEL</td><td class="hex">7:5</td><td class="hex">e0</td><td class="hex">2</td><td class="hex">40</td></tr>
 <tr><td >Speed</td><td class="hex">8:8</td><td class="hex">100</td><td class="hex">0</td><td class="hex">0</td></tr>
 <tr><td >IO_Type</td><td class="hex">11:9</td><td class="hex">e00</td><td class="hex">3</td><td class="hex">600</td></tr>
-<tr><td >PULLUP</td><td class="hex">12:12</td><td class="hex">1000</td><td class="hex">0</td><td class="hex">0</td></tr>
+<tr><td >PULLUP</td><td class="hex">12:12</td><td class="hex">1000</td><td class="hex">1</td><td class="hex">1000</td></tr>
 <tr><td >DisableRcvr</td><td class="hex">13:13</td><td class="hex">2000</td><td class="hex">0</td><td class="hex">0</td></tr>
-<tr><td><b>MIO_PIN_12 @ 0XF8000730</td><td></td><td class="hex"><b>3fff</b></td><td></td><td class="hex"><b>600</b></td></tr></table>
+<tr><td><b>MIO_PIN_12 @ 0XF8000730</td><td></td><td class="hex"><b>3fff</b></td><td></td><td class="hex"><b>1640</b></td></tr></table>
 </li>
 <li><p>Register : MIO_PIN_13 @ 0XF8000734</p>
 <table border="1"> 
@@ -7464,12 +7476,12 @@ td { min-width : 80px ; }
 <tr><td >L0_SEL</td><td class="hex">1:1</td><td class="hex">2</td><td class="hex">0</td><td class="hex">0</td></tr>
 <tr><td >L1_SEL</td><td class="hex">2:2</td><td class="hex">4</td><td class="hex">0</td><td class="hex">0</td></tr>
 <tr><td >L2_SEL</td><td class="hex">4:3</td><td class="hex">18</td><td class="hex">0</td><td class="hex">0</td></tr>
-<tr><td >L3_SEL</td><td class="hex">7:5</td><td class="hex">e0</td><td class="hex">0</td><td class="hex">0</td></tr>
+<tr><td >L3_SEL</td><td class="hex">7:5</td><td class="hex">e0</td><td class="hex">2</td><td class="hex">40</td></tr>
 <tr><td >Speed</td><td class="hex">8:8</td><td class="hex">100</td><td class="hex">0</td><td class="hex">0</td></tr>
 <tr><td >IO_Type</td><td class="hex">11:9</td><td class="hex">e00</td><td class="hex">3</td><td class="hex">600</td></tr>
-<tr><td >PULLUP</td><td class="hex">12:12</td><td class="hex">1000</td><td class="hex">0</td><td class="hex">0</td></tr>
+<tr><td >PULLUP</td><td class="hex">12:12</td><td class="hex">1000</td><td class="hex">1</td><td class="hex">1000</td></tr>
 <tr><td >DisableRcvr</td><td class="hex">13:13</td><td class="hex">2000</td><td class="hex">0</td><td class="hex">0</td></tr>
-<tr><td><b>MIO_PIN_13 @ 0XF8000734</td><td></td><td class="hex"><b>3fff</b></td><td></td><td class="hex"><b>600</b></td></tr></table>
+<tr><td><b>MIO_PIN_13 @ 0XF8000734</td><td></td><td class="hex"><b>3fff</b></td><td></td><td class="hex"><b>1640</b></td></tr></table>
 </li>
 <li><p>Register : MIO_PIN_14 @ 0XF8000738</p>
 <table border="1"> 
