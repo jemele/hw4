@@ -6,8 +6,8 @@
 #include "platform.h"
 #include "gpio.h"
 
-// Initialize internal gpio.
-int gpio_initialize(gpio_t *gpio)
+// Initialize axi gpio.
+int gpio_axi_initialize(gpio_axi_t *gpio)
 {
     int status;
 
@@ -28,9 +28,9 @@ int gpio_initialize(gpio_t *gpio)
     return 0;
 }
 
-// Read from the buttons gpio on channel 1.
+// Read from the buttons axi gpio on channel 1.
 // When data is available, return the read value.
-u32 gpio_blocking_read(gpio_t *gpio)
+u32 gpio_axi_blocking_read(gpio_axi_t *gpio)
 {
     const unsigned channel = 1;
 

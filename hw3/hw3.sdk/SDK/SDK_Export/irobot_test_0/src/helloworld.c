@@ -8,10 +8,10 @@
 #include "uart.h"
 
 // Practice movement primitives.
-static void irobot_movement_demo(gpio_t *gpio, uart_t *uart);
+static void irobot_movement_demo(gpio_axi_t *gpio, uart_t *uart);
 
 // Verify sensor input works for group 6 (all sensor data).
-static void irobot_sensor_demo0(gpio_t *gpio, uart_t *uart);
+static void irobot_sensor_demo0(gpio_axi_t *gpio, uart_t *uart);
 
 // Application driver.
 int main()
@@ -24,11 +24,11 @@ int main()
 
     // Configure buttons. We'll use this to walk through a demonstration.
     // This also gives us a chance to vet the buttons interface more generally.
-    gpio_t gpio = {
+    gpio_axi_t gpio = {
         .id = XPAR_AXI_GPIO_0_DEVICE_ID,
     };
     printf("initializing gpio\n");
-    status = gpio_initialize(&gpio);
+    status = gpio_axi_initialize(&gpio);
     if (status) {
         printf("gpio_initialize failed %d\n", status);
         return status;
@@ -60,7 +60,7 @@ int main()
     return 0;
 }
 
-static void irobot_movement_demo(gpio_t *gpio, uart_t *uart)
+static void irobot_movement_demo(gpio_axi_t *gpio, uart_t *uart)
 {
     // Do a movement demo.
     printf("movement demo\n");
@@ -70,7 +70,7 @@ static void irobot_movement_demo(gpio_t *gpio, uart_t *uart)
         // XXX This interface sucks.
         // It would be much nicer to have something that samples until non-zero,
         // and then samples until zero again.
-        buttons = gpio_blocking_read(gpio);
+        buttons = gpio_axi_blocking_read(gpio);
         if (button_center_pressed(buttons)) {
             printf("goodbye!\n");
             break;
@@ -123,14 +123,14 @@ static void irobot_movement_demo(gpio_t *gpio, uart_t *uart)
     }
 }
 
-static void irobot_sensor_demo0(gpio_t *gpio, uart_t *uart)
+static void irobot_sensor_demo0(gpio_axi_t *gpio, uart_t *uart)
 {
     // Do a sensor demo.
     sleep(1);
     printf("sensor demo\n");
     u32 buttons;
     for (;;) {
-        buttons = gpio_blocking_read(gpio);
+        buttons = gpio_axi_blocking_read(gpio);
         if (button_center_pressed(buttons)) {
             printf("goodbye!\n");
             break;

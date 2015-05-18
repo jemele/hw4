@@ -9,14 +9,14 @@
 typedef struct {
     int id;
     XGpio device;
-} gpio_t;
+} gpio_axi_t;
 
 // Initialize the specified gpio.
-int gpio_initialize(gpio_t *gpio);
+int gpio_axi_initialize(gpio_axi_t *gpio);
 
 // Poll the gpio waiting for a value.
 // When a value is available, return the value.
-u32 gpio_blocking_read(gpio_t *gpio);
+u32 gpio_axi_blocking_read(gpio_axi_t *gpio);
 
 // The available buttons.
 enum button_mask {
