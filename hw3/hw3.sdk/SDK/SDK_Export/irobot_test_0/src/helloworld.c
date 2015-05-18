@@ -6,6 +6,9 @@
 #include "gpio.h"
 #include "irobot.h"
 #include "uart.h"
+#include "ssd1306.h"
+#include "font_5x7.h"
+#include "Inspire.h"
 
 // Practice movement primitives.
 static void irobot_movement_demo(gpio_axi_t *gpio, uart_t *uart);
@@ -20,18 +23,84 @@ int main()
 
     printf("initialize irobot");
 
-    int status;
+    int status, i;
 
     // Configure buttons. We'll use this to walk through a demonstration.
     // This also gives us a chance to vet the buttons interface more generally.
-    gpio_axi_t gpio = {
+    gpio_axi_t gpio_axi = {
         .id = XPAR_AXI_GPIO_0_DEVICE_ID,
     };
     printf("initializing gpio\n");
-    status = gpio_axi_initialize(&gpio);
+    status = gpio_axi_initialize(&gpio_axi);
+    if (status) {
+        printf("gpio_axi_initialize failed %d\n", status);
+        return status;
+    }
+    gpio_t gpio = {
+        .id = XPAR_PS7_GPIO_0_DEVICE_ID,
+    };
+    status = gpio_initialize(&gpio);
     if (status) {
         printf("gpio_initialize failed %d\n", status);
         return status;
+    }
+
+    // Configure i2c.
+    i2c_t i2c0 = {
+        .id = XPAR_PS7_I2C_0_DEVICE_ID,
+        .clock = 100000,
+        .clear_options = XIICPS_10_BIT_ADDR_OPTION,
+        .options = XIICPS_7_BIT_ADDR_OPTION,
+        .write_delay_us = 300,
+    };
+    status = i2c_initialize(&i2c0);
+    if (status) {
+        printf("i2c_initialize failed %d\n", status);
+        return status;
+    }
+    i2c_t i2c1 = {
+        .id = XPAR_PS7_I2C_1_DEVICE_ID,
+        .clock = 100000,
+        .clear_options = XIICPS_10_BIT_ADDR_OPTION,
+        .options = XIICPS_7_BIT_ADDR_OPTION,
+        .write_delay_us = 300,
+    };
+    status = i2c_initialize(&i2c1);
+    if (status) {
+        printf("i2c_initialize failed %d\n", status);
+        return status;
+    }
+
+    // Configure displays.
+    font_t font = {
+        .base = Font5x7,
+        .size = sizeof(Font5x7),
+        .start = ' ',
+        .width = 5,
+        .pad = 1//28%5
+    };
+    ssd1306_t oled0 = {
+        .addr = 0x3c,
+        .reset_pin = 9,
+        .i2c = &i2c0,
+        .gpio = &gpio,
+        .font = &font,
+    };
+    ssd1306_reset(&oled0);
+    for(i=0; i< sizeof(Inspire); ++i) {
+        i2c_data(oled0.i2c, oled0.addr, Inspire[i]);
+    }
+
+    ssd1306_t oled1 = {
+        .addr = 0x3c,
+        .reset_pin = 0,
+        .i2c = &i2c1,
+        .gpio = &gpio,
+        .font = &font,
+    };
+    ssd1306_reset(&oled1);
+    for(i=0; i < sizeof(Inspire); ++i) {
+        i2c_data(oled1.i2c, oled0.addr, Inspire[i]);
     }
 
     // Configure the serial settings to 57600 baud, 8 data bits, 1 stop bit,
@@ -54,13 +123,13 @@ int main()
     const u8 cmd_song_program[] = {140,0,4,62,12,66,12,69,12,74,36};
     uart_sendv(&uart0, cmd_song_program, sizeof(cmd_song_program));
 
-    irobot_movement_demo(&gpio, &uart0);
-    irobot_sensor_demo0(&gpio, &uart0);
+    irobot_movement_demo(&gpio_axi, &uart0);
+    irobot_sensor_demo0(&gpio_axi, &uart0);
 
     return 0;
 }
 
-static void irobot_movement_demo(gpio_axi_t *gpio, uart_t *uart)
+static void irobot_movement_demo(gpio_axi_t *gpio_axi, uart_t *uart)
 {
     // Do a movement demo.
     printf("movement demo\n");
@@ -70,7 +139,7 @@ static void irobot_movement_demo(gpio_axi_t *gpio, uart_t *uart)
         // XXX This interface sucks.
         // It would be much nicer to have something that samples until non-zero,
         // and then samples until zero again.
-        buttons = gpio_axi_blocking_read(gpio);
+        buttons = gpio_axi_blocking_read(gpio_axi);
         if (button_center_pressed(buttons)) {
             printf("goodbye!\n");
             break;
@@ -123,14 +192,14 @@ static void irobot_movement_demo(gpio_axi_t *gpio, uart_t *uart)
     }
 }
 
-static void irobot_sensor_demo0(gpio_axi_t *gpio, uart_t *uart)
+static void irobot_sensor_demo0(gpio_axi_t *gpio_axi, uart_t *uart)
 {
     // Do a sensor demo.
     sleep(1);
     printf("sensor demo\n");
     u32 buttons;
     for (;;) {
-        buttons = gpio_axi_blocking_read(gpio);
+        buttons = gpio_axi_blocking_read(gpio_axi);
         if (button_center_pressed(buttons)) {
             printf("goodbye!\n");
             break;
