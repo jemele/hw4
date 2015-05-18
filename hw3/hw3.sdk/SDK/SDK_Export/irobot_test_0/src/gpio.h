@@ -4,8 +4,19 @@
 #define _gpio_h_
 
 #include <xgpio.h>
+#include <xgpiops.h>
 
-// A convenient struct to bundle xgpio information.
+// A convenient struct to bundle ps gpio information.
+typedef struct {
+    int id;
+    XGpioPs device;
+    XGpioPs_Config *config;
+} gpio_t;
+
+// Initialize the specified gpio.
+int gpio_initialize(gpio_t *gpio);
+
+// A convenient struct to bundle axi gpio information.
 typedef struct {
     int id;
     XGpio device;

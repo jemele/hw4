@@ -6,6 +6,34 @@
 #include "platform.h"
 #include "gpio.h"
 
+// Initialize gpio.
+int gpio_initialize(gpio_t *gpio)
+{
+    gpio->config = XGpioPs_LookupConfig(XPAR_PS7_GPIO_0_DEVICE_ID);
+    if (!gpio->config) {
+        printf("XGpioPs_LookupConfig failed\n");
+        return XST_FAILURE;
+    }
+    printf("gpio initialization\n");
+    int status = XGpioPs_CfgInitialize(&gpio->device, gpio->config,
+            gpio->config->BaseAddr);
+    if (status != XST_SUCCESS) {
+        printf("XGpioPs_CfgInitialize failed %d\n", status);
+        return status;
+    }
+    printf("gpio selftest\n");
+    status = XGpioPs_SelfTest(&gpio->device);
+    if (status != XST_SUCCESS) {
+        printf("XGpioPs_SelfTest %d\n", status);
+        return status;
+    }
+    printf("lighting up mio7\n");
+    XGpioPs_SetDirectionPin(&gpio->device, 7, 1);
+    XGpioPs_SetOutputEnablePin(&gpio->device, 7, 1);
+    XGpioPs_WritePin(&gpio->device, 7, 1);
+    return 0;
+}
+
 // Initialize axi gpio.
 int gpio_axi_initialize(gpio_axi_t *gpio)
 {
