@@ -50,3 +50,23 @@ void uart_sendv(uart_t *uart, const u8 *data, int count)
         uart_send(uart, data[i]);
     }
 }
+
+// Returns non-zero if recv data is waiting, 0 otherwise.
+int uart_recv_ready(uart_t *uart)
+{
+    return XUartPs_IsReceiveData(uart->config->BaseAddress);
+}
+
+// Flush the uart receive buffer.
+// Returns the number of bytes flushed.
+int uart_recv_flush(uart_t *uart)
+{
+    int i = 0;
+    while (uart_recv_ready(uart)) {
+        uart_recv(uart);
+        ++i;
+    }
+    return i;
+}
+
+
