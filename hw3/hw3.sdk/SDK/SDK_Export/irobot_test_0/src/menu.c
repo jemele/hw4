@@ -29,9 +29,6 @@ void menu_run(gpio_axi_t *gpio, ssd1306_t *oled, void *context)
                 int count = sizeof(coords)/sizeof(*coords);
                 menu_input_coordinates(gpio, oled, coords, &count);
                 strcpy(task, "X,Y Coordinate");
-                for(i=0; i<count*2; i+=2) {
-                    printf("x:%d y:%d\n", coords[i], coords[i+1]);
-                }
                 if (menu_handler_user_route) {
                     menu_handler_user_route(coords,count,context);
                 }
@@ -41,7 +38,6 @@ void menu_run(gpio_axi_t *gpio, ssd1306_t *oled, void *context)
             case menu_id_search: {
                 int t;
                 menu_input_time(gpio, oled, &t);
-                printf("\nt %d\n",t);
                 strcpy(task, "Area Map/Search");
                 if (menu_handler_search) {
                     menu_handler_search(t,context);
@@ -165,7 +161,6 @@ void menu_input_coordinates(gpio_axi_t *gpio, ssd1306_t *oled, int *xyCoord, int
                 x++;
             }
             if ((sel == button_left)&&(x>-64)){
-                printf("x: %d\n", x);
                 x--;
             }
             if ((sel == button_up)&&(y<31)){
@@ -184,7 +179,8 @@ void menu_input_coordinates(gpio_axi_t *gpio, ssd1306_t *oled, int *xyCoord, int
             ssd1306_set_page_start(oled, 1);
             ssd1306_display_string(oled, "y: ");
             ssd1306_display_string(oled, yChar);
-        } while (sel != 16);
+
+        } while (sel != button_center);
         *(xyCoord+(2*i)) = x;
         *(xyCoord+(2*i+1)) = y;
     }
