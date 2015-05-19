@@ -159,7 +159,6 @@ void ssd1306_display_character(ssd1306_t *device, char c)
 void ssd1306_display_string(ssd1306_t *device, const char *s)
 {
     while (*s) {
-        putchar(*s);
         ssd1306_display_character(device, *s++);
     }
 }
