@@ -157,16 +157,16 @@ void menu_input_coordinates(gpio_axi_t *gpio, ssd1306_t *oled, int *xyCoord, int
         do {
             sel = gpio_axi_blocking_read(gpio);
             usleep(100*1000);
-            if ((sel == button_right)&&(x<63)){
+            if ((sel == button_right)&&(x<128)){
                 x++;
             }
-            if ((sel == button_left)&&(x>-64)){
+            if ((sel == button_left)&&(x>=0)){
                 x--;
             }
-            if ((sel == button_up)&&(y<31)){
+            if ((sel == button_up)&&(y<64)){
                 y++;
             }
-            if ((sel == button_down)&&(y>-32)){
+            if ((sel == button_down)&&(y>=0)){
                 y--;
             }
 
