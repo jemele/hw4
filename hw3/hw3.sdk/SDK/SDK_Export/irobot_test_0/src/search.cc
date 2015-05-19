@@ -20,9 +20,7 @@ struct order_cell_by_f {
 
 std::ostream& operator<<(std::ostream &os, const search_cell_t *c)
 {
-   os << c->x << ',' << c->y << ','
-      << c->g << ',' << c->h << ',' << c->f;
-   return os;
+   return os << c->x << ',' << c->y;
 }
 
 search_cell_t* search_cell_at(search_map_t *map, int x, int y)

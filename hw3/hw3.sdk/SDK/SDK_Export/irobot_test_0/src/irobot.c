@@ -86,9 +86,9 @@ int irobot_drive_straight_sense(uart_t *uart, s16 distance_mm)
 // Rotate left.
 void irobot_rotate_left(uart_t *uart)
 {
-    printf("ccw 90 degrees\n");
     const s16 speed = 100; //mm/s
-    const s16 angle = 90;
+    const s16 angle = 89;
+    printf("ccw %d degrees\n", angle);
 
     // rotate ccw 90 degrees and stop
     const u8 c[] = {152,13,
@@ -109,9 +109,9 @@ void irobot_rotate_left(uart_t *uart)
 // Rotate right.
 void irobot_rotate_right(uart_t *uart)
 {
-    printf("cw 90 degrees\n");
     const s16 speed = 100; //mm/s
     const s16 angle = -90;
+    printf("cw %d degrees\n", angle);
 
     // rotate cw 90 degrees and stop
     const u8 c[] = {152,13,

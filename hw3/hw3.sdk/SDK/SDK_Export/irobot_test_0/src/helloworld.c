@@ -20,6 +20,8 @@ typedef struct {
     ssd1306_t *oled[2];
 } menu_context_t;
 
+// Please don't change these values. The direction_rotate function explicitly
+// relies on the supplied encoding.
 typedef enum {
     direction_left    = 0,
     direction_forward = 1,
@@ -42,9 +44,6 @@ const char *direction_t_to_string(direction_t v) {
 // Calculate the moves needed to go from one direction to another.
 void direction_rotation(int current, int next, char *rotation, int *count)
 {
-    printf("%s: %s->%s\n", __func__, direction_t_to_string(current),
-            direction_t_to_string(next));
-
     *count = 0;
     if (current == next) {
         return;
@@ -55,7 +54,7 @@ void direction_rotation(int current, int next, char *rotation, int *count)
     }
     *rotation = ((delta < 0) ? 'L' : 'R');
     *count = abs(delta);
-    printf("%s: %s->%s: %d%c\n", __func__, direction_t_to_string(current),
+    printf("%s->%s: %d%c\n", direction_t_to_string(current),
             direction_t_to_string(next), *count, *rotation);
 }
 
@@ -86,7 +85,7 @@ void irobot_rotate(uart_t *uart, direction_t direction_current, direction_t dire
     int rotation_count;
     direction_rotation(direction_current, direction_next, &rotation,
             &rotation_count);
-
+#if 1
     // Make the rotation so.
     int i;
     for (i = 0; i < rotation_count; ++i) {
@@ -95,11 +94,12 @@ void irobot_rotate(uart_t *uart, direction_t direction_current, direction_t dire
         case 'L': irobot_rotate_left(uart);  break;
         }
     }
+#endif
 }
 
 void irobot_move(uart_t *uart, search_cell_t *path)
 {
-    const s16 unit_distance_mm = 25*8; // ~8 inches
+    const s16 unit_distance_mm = 24*8; // ~8 inches
 
     // We always assume starting on the origin, facing forward.
     // In a future iteration, someone can tell us our start state.
@@ -108,25 +108,25 @@ void irobot_move(uart_t *uart, search_cell_t *path)
     // Walk through the path, calculating movement with each cell.
     search_cell_t *c;
     for (c = path->next; c; c = c->next) {
-        printf("%d,%d:%d\n", c->x, c->y, c->f);
 
         // Calculate the delta, and ignore vacuous moves.
         const int dx = c->x - c->prev->x;
         const int dy = c->y - c->prev->y;
-        printf("dx %d dy %d\n", dx, dy);
         if (!dx && !dy) {
             continue;
         }
+        printf("x:%d y:%d dx:%d dy:%d\n", c->x, c->y, dx, dy);
 
         // Calculate the direction and rotate.
         direction_t direction_next = direction_from_delta(dx,dy);
         irobot_rotate(uart, direction_current, direction_next);
         direction_current = direction_next;
-
+#if 1
         // Travel a unit distance.
         const int distance_mm =
             irobot_drive_straight_sense(uart,unit_distance_mm);
         printf("drove %d mm\n", distance_mm);
+#endif
     }
 
     // Finally, reorient to starting stance.
