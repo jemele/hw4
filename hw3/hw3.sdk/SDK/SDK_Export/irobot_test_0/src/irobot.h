@@ -46,4 +46,6 @@ void direction_rotation(int current, int next, char *rotation, int *count);
 // is available.
 void irobot_move(uart_t *uart, search_cell_t *path);
 
+// Play the specified song. Hopefully it's programmed :)
+void irobot_play_song(uart_t *uart, u8 song);
 #endif

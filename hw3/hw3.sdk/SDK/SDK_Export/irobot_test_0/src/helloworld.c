@@ -49,11 +49,51 @@ void handler_programmed_route(void *context)
     irobot_move(uart, goal);
 }
 
+// Move through all the user defined waypoints. At each waypoint, play a song.
+// When finished with the user waypoints, return to base. This assumes the
+// starting location is (0,0).
 void handler_user_route(int *coords, int count, void *context)
 {
-    menu_context_t *c = (menu_context_t*)context;
-    printf("user route\n");
+    menu_context_t *menu_context = (menu_context_t*)context;
+    uart_t *uart = menu_context->uart;
+    search_map_t *map = menu_context->map;
+
+    printf("user route: %d waypoints\n", count);
+    search_cell_t *start = search_cell_at(map,0,0);
+    search_cell_t *goal = 0;
+
+    // for each waypoint, move to the waypoint and play a song.
+    // finally, return to base.
+    int i;
+    for (i = 0; i < count; ++i) {
+        const int x = coords[(2*i)]/8;
+        const int y = coords[(2*i)+1]/8;
+        printf("waypoint x:%d y:%d\n", x, y);
+        goal = search_cell_at(map,x,y);
+
+        // search and move
+        search_map_initialize(map);
+        search_find(map, start, goal);
+        if (!goal->closed) {
+            printf("panic: could not find goal!\n");
+            return;
+        }
+        irobot_move(uart, start);
+        irobot_play_song(uart, 0);
+        start = goal;
+    }
+
+    // search and return to base
+    goal = search_cell_at(map,0,0);
+    search_map_initialize(map);
+    search_find(map, start, goal);
+    if (!goal->closed) {
+        printf("panic: could not find goal!\n");
+        return;
+    }
+    irobot_move(uart, start);
 }
+
 void handler_search(int time_s, void *context)
 {
     menu_context_t *c = (menu_context_t*)context;

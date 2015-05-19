@@ -186,7 +186,7 @@ void irobot_rotate(uart_t *uart, direction_t direction_current, direction_t dire
     int rotation_count;
     direction_rotation(direction_current, direction_next, &rotation,
             &rotation_count);
-#if 1
+
     // Make the rotation so.
     int i;
     for (i = 0; i < rotation_count; ++i) {
@@ -195,7 +195,6 @@ void irobot_rotate(uart_t *uart, direction_t direction_current, direction_t dire
         case 'L': irobot_rotate_left(uart);  break;
         }
     }
-#endif
 }
 
 void irobot_move(uart_t *uart, search_cell_t *path)
@@ -222,16 +221,19 @@ void irobot_move(uart_t *uart, search_cell_t *path)
         direction_t direction_next = direction_from_delta(dx,dy);
         irobot_rotate(uart, direction_current, direction_next);
         direction_current = direction_next;
-#if 1
+
         // Travel a unit distance.
         const int distance_mm =
             irobot_drive_straight_sense(uart,unit_distance_mm);
         printf("drove %d mm\n", distance_mm);
-#endif
     }
 
     // Finally, reorient to starting stance.
     irobot_rotate(uart, direction_current, direction_forward);
 }
 
-
+void irobot_play_song(uart_t *uart, u8 song)
+{
+    const u8 c[] = {141,song};
+    uart_sendv(uart,c,sizeof(c));
+}
