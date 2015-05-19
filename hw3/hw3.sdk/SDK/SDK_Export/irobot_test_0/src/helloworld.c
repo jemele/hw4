@@ -15,22 +15,43 @@
 
 // Menu context.
 typedef struct {
+    search_map_t *map;
     uart_t *uart;
     ssd1306_t *oled[2];
 } menu_context_t;
 
 // Menu handlers.
-void programmed_route(void *context)
+void handler_programmed_route(void *context)
 {
+    // Go from the origin to a corner.
     menu_context_t *c = (menu_context_t*)context;
     printf("programmed route\n");
+    search_map_initialize(c->map);
+
+    // Verify we can find our goal.
+    search_cell_t *start = search_cell_at(c->map,0,0);
+    search_cell_t *goal = search_cell_at(c->map,15,7);
+    search_find(c->map, start, goal);
+
+    // Print out our goal.
+    // We should actually move toward it.
+    if (goal->closed) {
+        printf("goal found\n");
+        search_cell_t *c;
+        for (c = start; c->next; c = c->next) {
+            printf("%d,%d:%d\n", c->x, c->y, c->f);
+        }
+    } else {
+        printf("panic: could not find goal!\n");
+    }
 }
-void user_route(int *coords, int count, void *context)
+
+void handler_user_route(int *coords, int count, void *context)
 {
     menu_context_t *c = (menu_context_t*)context;
     printf("user route\n");
 }
-void search(int time_s, void *context)
+void handler_search(int time_s, void *context)
 {
     menu_context_t *c = (menu_context_t*)context;
     printf("search\n");
@@ -53,36 +74,6 @@ int main()
         return status;
     }
     search_map_initialize(&map);
-
-    // Add some obstacles along the path.
-    search_cell_at(&map,84/8,32/8)->blocked = 1;
-    search_cell_at(&map,127/8,53/8)->blocked = 1;
-
-    // Verify we can find our goal.
-    search_cell_t *start = search_cell_at(&map,0,0);
-    search_cell_t *goal = search_cell_at(&map,15,7);
-
-    // Benchmark performance to get a feel for pathfinding cost.
-    XTime clock_start, clock_stop;
-    XTime_GetTime(&clock_start);
-    search_find(&map, start, goal);
-    XTime_GetTime(&clock_stop);
-
-    const unsigned long long elapsed_ms =
-        (clock_stop-clock_start)/(COUNTS_PER_SECOND/1000);
-    printf("search: start %llu stop %llu difference %llu elapsed ms %llu\n",
-            clock_start, clock_stop, clock_stop-clock_start,
-            elapsed_ms);
-
-    // Dump the path if we found the goal.
-    if (goal->closed) {
-        printf("goal found\n");
-        search_cell_t *c;
-        for (c = start; c->next; c = c->next) {
-            printf("%d,%d:%d\n", c->x, c->y, c->f);
-        }
-    }
-    search_map_free(&map);
 
     // Configure buttons. We'll use this to walk through a demonstration.
     // This also gives us a chance to vet the buttons interface more generally.
@@ -184,14 +175,18 @@ int main()
 
     // Start the integrated menu.
     menu_context_t menu_context = {
+        .map = &map,
         .uart = &uart0,
         .oled = { [0] &oled0, [1] &oled1 },
     };
-    menu_handler_programmed_route = programmed_route;
-    menu_handler_user_route = user_route;
-    menu_handler_search = search;
+    menu_handler_programmed_route = handler_programmed_route;
+    menu_handler_user_route = handler_user_route;
+    menu_handler_search = handler_search;
     menu_run(&gpio_axi, &oled0, &menu_context);
+
+    search_map_free(&map);
     return 0;
+
 }
 #if 0
 static void irobot_movement_demo(gpio_axi_t *gpio_axi, uart_t *uart)
