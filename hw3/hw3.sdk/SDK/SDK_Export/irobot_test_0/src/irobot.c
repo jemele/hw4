@@ -6,6 +6,16 @@
 #include "platform.h"
 #include "irobot.h"
 
+const char *direction_t_to_string(direction_t v) {
+    static const char *s[] = {
+    [direction_left]    "left",
+    [direction_forward] "forward",
+    [direction_right]   "right",
+    [direction_back]    "back",
+    };
+    return s[v];
+}
+
 void irobot_read_sensor(uart_t *uart, irobot_sensor_t *s)
 {
     const u8 c[] = {149,2,7,8};
@@ -127,6 +137,101 @@ void irobot_rotate_right(uart_t *uart)
     // Wait for the program to complete.
     // Ideally, this would be derived from the rotational velocity.
     usleep(1000 * 1000);
+}
+
+#define abs(x) ((x<0)?-x:x)
+#define sign(x) ((x<0)?-1:1)
+
+// Calculate the moves needed to go from one direction to another.
+void direction_rotation(int current, int next, char *rotation, int *count)
+{
+    *count = 0;
+    if (current == next) {
+        return;
+    }
+    int delta = next - current;
+    if (abs(delta) == 3) {
+        delta = -sign(delta);
+    }
+    *rotation = ((delta < 0) ? 'L' : 'R');
+    *count = abs(delta);
+    printf("%s->%s: %d%c\n", direction_t_to_string(current),
+            direction_t_to_string(next), *count, *rotation);
+}
+
+// Calculate the final orientation of the robot given dx and dy.  This assumes
+// that dx and dy cannot *both* be set, i.e.., diagonal moves are not
+// permitted.
+int direction_from_delta(int dx, int dy)
+{
+    switch (dx) {
+    case -1: return direction_left;
+    case +1: return direction_right;
+    }
+    switch (dy) {
+    case -1: return direction_back;
+    case +1: return direction_forward;
+    }
+
+    // We should never get here
+    printf("panic: unknown direction!\n");
+    return direction_forward;
+}
+
+// High level moving routines.
+void irobot_rotate(uart_t *uart, direction_t direction_current, direction_t direction_next)
+{
+    // Calculate the rotation needed to reorient on the next direction.
+    char rotation;
+    int rotation_count;
+    direction_rotation(direction_current, direction_next, &rotation,
+            &rotation_count);
+#if 1
+    // Make the rotation so.
+    int i;
+    for (i = 0; i < rotation_count; ++i) {
+        switch (rotation) {
+        case 'R': irobot_rotate_right(uart); break;
+        case 'L': irobot_rotate_left(uart);  break;
+        }
+    }
+#endif
+}
+
+void irobot_move(uart_t *uart, search_cell_t *path)
+{
+    const s16 unit_distance_mm = 24*8; // ~8 inches
+
+    // We always assume starting on the origin, facing forward.
+    // In a future iteration, someone can tell us our start state.
+    direction_t direction_current = direction_forward;
+
+    // Walk through the path, calculating movement with each cell.
+    search_cell_t *c;
+    for (c = path->next; c; c = c->next) {
+
+        // Calculate the delta, and ignore vacuous moves.
+        const int dx = c->x - c->prev->x;
+        const int dy = c->y - c->prev->y;
+        if (!dx && !dy) {
+            continue;
+        }
+        printf("x:%d y:%d dx:%d dy:%d\n", c->x, c->y, dx, dy);
+
+        // Calculate the direction and rotate.
+        direction_t direction_next = direction_from_delta(dx,dy);
+        irobot_rotate(uart, direction_current, direction_next);
+        direction_current = direction_next;
+#if 1
+        // Travel a unit distance.
+        const int distance_mm =
+            irobot_drive_straight_sense(uart,unit_distance_mm);
+        printf("drove %d mm\n", distance_mm);
+#endif
+    }
+
+    // Finally, reorient to starting stance.
+    irobot_rotate(uart, direction_current, direction_forward);
 }
 
 
