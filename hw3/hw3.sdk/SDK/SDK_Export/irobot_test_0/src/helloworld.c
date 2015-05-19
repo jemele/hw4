@@ -5,6 +5,7 @@
 #include "platform.h"
 #include "gpio.h"
 #include "irobot.h"
+#include "menu.h"
 #include "uart.h"
 #include "ssd1306.h"
 #include "font_5x7.h"
@@ -155,6 +156,8 @@ int main()
     irobot_movement_demo(&gpio_axi, &uart0);
     irobot_sensor_demo0(&gpio_axi, &uart0);
 
+    // Start the integrated menu.
+    menu_run(&gpio_axi, &oled0);
     return 0;
 }
 

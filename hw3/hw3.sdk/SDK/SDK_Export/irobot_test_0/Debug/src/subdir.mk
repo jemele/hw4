@@ -7,6 +7,7 @@ C_SRCS += \
 ../src/gpio.c \
 ../src/helloworld.c \
 ../src/irobot.c \
+../src/menu.c \
 ../src/platform.c \
 ../src/priority_queue.c \
 ../src/ssd1306.c \
@@ -22,6 +23,7 @@ OBJS += \
 ./src/gpio.o \
 ./src/helloworld.o \
 ./src/irobot.o \
+./src/menu.o \
 ./src/platform.o \
 ./src/priority_queue.o \
 ./src/ssd1306.o \
