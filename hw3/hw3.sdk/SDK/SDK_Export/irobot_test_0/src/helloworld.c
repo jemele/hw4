@@ -25,6 +25,16 @@ void programmed_route(void *context)
     menu_context_t *c = (menu_context_t*)context;
     printf("programmed route\n");
 }
+void user_route(int *coords, int count, void *context)
+{
+    menu_context_t *c = (menu_context_t*)context;
+    printf("user route\n");
+}
+void search(int time_s, void *context)
+{
+    menu_context_t *c = (menu_context_t*)context;
+    printf("search\n");
+}
 
 // Application driver.
 int main()
@@ -178,6 +188,8 @@ int main()
         .oled = { [0] &oled0, [1] &oled1 },
     };
     menu_handler_programmed_route = programmed_route;
+    menu_handler_user_route = user_route;
+    menu_handler_search = search;
     menu_run(&gpio_axi, &oled0, &menu_context);
     return 0;
 }
