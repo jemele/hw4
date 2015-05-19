@@ -9,6 +9,7 @@
 #include "ssd1306.h"
 #include "font_5x7.h"
 #include "Inspire.h"
+#include "search.h"
 
 // Practice movement primitives.
 static void irobot_movement_demo(gpio_axi_t *gpio, uart_t *uart);
@@ -21,9 +22,37 @@ int main()
 {
     init_platform();
 
-    printf("initialize irobot");
+    printf("initialize irobot\n");
 
     int status, i;
+
+    printf("search self test\n");
+    search_map_t map;
+    status = search_map_alloc(&map, 128/8, 64/8);
+    if (status) {
+        printf("search_map_alloc failed %d\n", status);
+        return status;
+    }
+    search_map_initialize(&map);
+
+    // Add some obstacles along the path.
+    search_cell_at(&map,84/8,32/8)->blocked = 1;
+    search_cell_at(&map,127/8,53/8)->blocked = 1;
+
+    // Verify we can find our goal.
+    search_cell_t *start = search_cell_at(&map,0,0);
+    search_cell_t *goal = search_cell_at(&map,15,7);
+    search_find(&map, start, goal);
+
+    // Dump the path if we found the goal.
+    if (goal->closed) {
+        printf("goal found\n");
+        search_cell_t *c;
+        for (c = goal; c->parent; c = c->parent) {
+            printf("%d,%d:%d\n", c->x, c->y, c->f);
+        }
+    }
+    search_map_free(&map);
 
     // Configure buttons. We'll use this to walk through a demonstration.
     // This also gives us a chance to vet the buttons interface more generally.
