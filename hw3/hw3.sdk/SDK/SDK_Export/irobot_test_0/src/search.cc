@@ -125,12 +125,12 @@ void search_find(search_map_t *map, search_cell_t *start, search_cell_t *goal)
             // the path through current and place adj on the open list.
             if (adj->open && ((current->g+1) < adj->g)) {
                 adj->prev = current;
-                adj->g = current->g + 1; // for now, we assume
+                adj->g = current->g + 1;
                 adj->h = h_distance(adj,goal);
                 adj->f = adj->g + adj->h;
             } else {
                 adj->prev = current;
-                adj->g = current->g + 1; // for now, we assume
+                adj->g = current->g + 1;
                 adj->h = h_distance(adj,goal);
                 adj->f = adj->g + adj->h;
                 adj->open = true;
