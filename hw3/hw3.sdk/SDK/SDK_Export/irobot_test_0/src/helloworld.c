@@ -263,7 +263,6 @@ static void irobot_sensor_demo0(gpio_axi_t *gpio_axi, uart_t *uart)
         for (i = 0; i < sizeof(sensor_data); ++i) {
             sensor_data[i] = uart_recv(uart);
         }
-
         const int sensor_packet_to_offset[] = {
             [7]  0,
             [8]  1,
@@ -331,6 +330,10 @@ static void irobot_sensor_demo1(gpio_axi_t *gpio_axi, uart_t *uart)
 {
     const int unit_distance_mm = 200;
 
+    // Flush the receive pipe to clear spurious data.
+    int i = uart_recv_flush(uart);
+    printf("flushed %d bytes\n", i);
+
     // Do a sensor demo.
     sleep(1);
     printf("sensor demo\n");
@@ -341,34 +344,15 @@ static void irobot_sensor_demo1(gpio_axi_t *gpio_axi, uart_t *uart)
             printf("goodbye!\n");
             break;
         }
-        if (button_up_pressed(buttons)) {
-            irobot_drive_straight(uart,-unit_distance_mm);
-        }
-        if (button_down_pressed(buttons)) {
-            irobot_drive_straight(uart,unit_distance_mm);
-        }
 
         // Rate limit command input to 1Hz.
         sleep(1);
-        printf("querying bumper/wall sensor data\n");
-        const u8 c[] = {149,3,7,8,19};
-        uart_sendv(uart,c,sizeof(c));
+        irobot_sensor_t s;
+        irobot_read_sensor(uart, &s);
+        printf("bumper %d wall %d\n", s.bumper, s.wall);
 
-        int i;
-        u8 d[4];
-        for (i = 0; i < sizeof(d); ++i) {
-            d[i] = uart_recv(uart);
-        }
-
-        const s16 distance = (d[2]<<8)|d[3];
-
-        printf("wcaster %d wleft %d wright %d bleft %d bright %d wall %d distance %d\n",
-                (d[0] >> 4) & 1,
-                (d[0] >> 3) & 1,
-                (d[0] >> 2) & 1,
-                (d[0] >> 1) & 1,
-                (d[0] >> 0) & 1,
-                d[1],
-                distance);
+        // Flush spurious sensor data (there should be none).
+        i = uart_recv_flush(uart);
+        printf("flushed %d bytes\n", i);
     }
 }

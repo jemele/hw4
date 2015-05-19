@@ -5,10 +5,24 @@
 #include "platform.h"
 #include "irobot.h"
 
+void irobot_read_sensor(uart_t *uart, irobot_sensor_t *s)
+{
+    const u8 c[] = {149,2,7,8};
+    uart_sendv(uart,c,sizeof(c));
+
+    int i;
+    u8 d[2];
+    for (i = 0; i < sizeof(d); ++i) {
+        d[i] = uart_recv(uart);
+    }
+
+    s->bumper = d[0] & 0x3;
+    s->wall = d[1];
+}
+
 // Move in a straight line.
 void irobot_drive_straight(uart_t *uart, s16 distance_mm)
 {
-    printf("forward XX mm\n");
     const s16 speed = (distance_mm < 0) ? -100 : 100; //mm/s
 
     // rotate ccw 90 degrees and stop
