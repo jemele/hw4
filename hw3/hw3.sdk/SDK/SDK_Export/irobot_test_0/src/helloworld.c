@@ -13,10 +13,11 @@
 #include "search.h"
 
 // Practice movement primitives.
-static void irobot_movement_demo(gpio_axi_t *gpio, uart_t *uart);
+static void irobot_movement_demo0(gpio_axi_t *gpio, uart_t *uart);
 
 // Verify sensor input works for group 6 (all sensor data).
 static void irobot_sensor_demo0(gpio_axi_t *gpio, uart_t *uart);
+static void irobot_sensor_demo1(gpio_axi_t *gpio, uart_t *uart);
 
 // Application driver.
 int main()
@@ -153,15 +154,18 @@ int main()
     const u8 cmd_song_program[] = {140,0,4,62,12,66,12,69,12,74,36};
     uart_sendv(&uart0, cmd_song_program, sizeof(cmd_song_program));
 
-    irobot_movement_demo(&gpio_axi, &uart0);
+    irobot_sensor_demo1(&gpio_axi, &uart0);
+#if 0
+    irobot_movement_demo0(&gpio_axi, &uart0);
     irobot_sensor_demo0(&gpio_axi, &uart0);
-
     // Start the integrated menu.
     menu_run(&gpio_axi, &oled0);
+#endif
+
     return 0;
 }
 
-static void irobot_movement_demo(gpio_axi_t *gpio_axi, uart_t *uart)
+static void irobot_movement_demo0(gpio_axi_t *gpio_axi, uart_t *uart)
 {
     // Do a movement demo.
     printf("movement demo\n");
@@ -308,5 +312,51 @@ static void irobot_sensor_demo0(gpio_axi_t *gpio_axi, uart_t *uart)
         printf("cright signal %d\n", (d[0]<<8)|d[1]);
         d = &sensor_data[sensor_packet_to_offset[39]];
         printf("velocity %d\n", (d[0]<<8)|d[1]);
+    }
+}
+
+static void irobot_sensor_demo1(gpio_axi_t *gpio_axi, uart_t *uart)
+{
+    const int unit_distance_mm = 200;
+
+    // Do a sensor demo.
+    sleep(1);
+    printf("sensor demo\n");
+    u32 buttons;
+    for (;;) {
+        buttons = gpio_axi_blocking_read(gpio_axi);
+        if (button_center_pressed(buttons)) {
+            printf("goodbye!\n");
+            break;
+        }
+        if (button_up_pressed(buttons)) {
+            irobot_drive_straight(uart,-unit_distance_mm);
+        }
+        if (button_down_pressed(buttons)) {
+            irobot_drive_straight(uart,unit_distance_mm);
+        }
+
+        // Rate limit command input to 1Hz.
+        sleep(1);
+        printf("querying bumper/wall sensor data\n");
+        const u8 c[] = {149,3,7,8,19};
+        uart_sendv(uart,c,sizeof(c));
+
+        int i;
+        u8 d[4];
+        for (i = 0; i < sizeof(d); ++i) {
+            d[i] = uart_recv(uart);
+        }
+
+        const s16 distance = (d[2]<<8)|d[3];
+
+        printf("wcaster %d wleft %d wright %d bleft %d bright %d wall %d distance %d\n",
+                (d[0] >> 4) & 1,
+                (d[0] >> 3) & 1,
+                (d[0] >> 2) & 1,
+                (d[0] >> 1) & 1,
+                (d[0] >> 0) & 1,
+                d[1],
+                distance);
     }
 }
