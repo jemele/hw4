@@ -20,27 +20,69 @@ typedef struct {
     ssd1306_t *oled[2];
 } menu_context_t;
 
+// High level moving routines.
+void robot_move(uart_t *uart, search_cell_t *path)
+{
+    search_cell_t *c;
+    int x_orientation = 0;
+    int y_orientation = 1;
+    const s16 unit_distance_mm = 20*8;
+    for (c = path->next; c && c->next; c = c->next) {
+        printf("%d,%d:%d\n", c->x, c->y, c->f);
+
+        // Issue the move. Assume no obstacles.
+        // Calculate the delta.
+        // Assume if we need to -x or +x, we need to rotate first.
+        const int dx = c->prev->x - c->x;
+        const int dy = c->prev->y - c->y;
+        printf("dx %d dy %d\n", dx, dy);
+
+        // We should only need to move in dx or only dy.
+        if (x_orientation != dx) {
+            while (x_orientation-- > dx) {
+                irobot_rotate_left(uart);
+                printf("rotate left\n");
+            }
+            while (x_orientation++ < dx) {
+                irobot_rotate_right(uart);
+                printf("rotate right\n");
+            }
+        }
+        if (y_orientation != dy) {
+            if (y_orientation != dy) {
+                y_orientation *= -1;
+                irobot_rotate_right(uart);
+                printf("rotate right\n");
+                irobot_rotate_right(uart);
+                printf("rotate right\n");
+            }
+        }
+        const int distance_mm =
+            irobot_drive_straight_sense(uart,unit_distance_mm);
+        printf("drove %d mm\n", distance_mm);
+    }
+}
+
 // Menu handlers.
 void handler_programmed_route(void *context)
 {
     // Go from the origin to a corner.
-    menu_context_t *c = (menu_context_t*)context;
+    menu_context_t *menu_context = (menu_context_t*)context;
+    uart_t *uart = menu_context->uart;
+    search_map_t *map = menu_context->map;
+
     printf("programmed route\n");
-    search_map_initialize(c->map);
+    search_map_initialize(map);
 
     // Verify we can find our goal.
-    search_cell_t *start = search_cell_at(c->map,0,0);
-    search_cell_t *goal = search_cell_at(c->map,15,7);
-    search_find(c->map, start, goal);
+    search_cell_t *start = search_cell_at(map,0,0);
+    search_cell_t *goal = search_cell_at(map,15,7);
+    search_find(map, start, goal);
 
     // Print out our goal.
     // We should actually move toward it.
     if (goal->closed) {
-        printf("goal found\n");
-        search_cell_t *c;
-        for (c = start; c->next; c = c->next) {
-            printf("%d,%d:%d\n", c->x, c->y, c->f);
-        }
+        robot_move(uart, start);
     } else {
         printf("panic: could not find goal!\n");
     }

@@ -97,20 +97,8 @@ void irobot_rotate_left(uart_t *uart)
         137,0,0,0,0};
     uart_sendv(uart,c,sizeof(c));
 
-    // Verify we can read the program back.
-    usleep(1000*100);
-    uart_send(uart,154);
-    usleep(1000*100);
-    int bytes = uart_recv(uart);
-    printf("%d program bytes\n", bytes);
-    int i;
-    for (i = 0; i < bytes; ++i) {
-        u8 d = uart_recv(uart);
-        printf("%d,", d);
-    }
-    printf("\n");
-
     // Run the program.
+    usleep(1000);
     uart_send(uart,153);
 
     // Wait for the program to complete.
@@ -132,20 +120,8 @@ void irobot_rotate_right(uart_t *uart)
         137,0,0,0,0};
     uart_sendv(uart,c,sizeof(c));
 
-    // Verify we can read the program back.
-    usleep(1000*100);
-    uart_send(uart,154);
-    usleep(1000*100);
-    int bytes = uart_recv(uart);
-    printf("%d program bytes\n", bytes);
-    int i;
-    for (i = 0; i < bytes; ++i) {
-        u8 d = uart_recv(uart);
-        printf("%d,", d);
-    }
-    printf("\n");
-
     // Run the program.
+    usleep(1000);
     uart_send(uart,153);
 
     // Wait for the program to complete.
