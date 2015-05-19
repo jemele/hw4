@@ -79,7 +79,25 @@ int direction_from_delta(int dx, int dy)
 }
 
 // High level moving routines.
-void robot_move(uart_t *uart, search_cell_t *path)
+void irobot_rotate(uart_t *uart, direction_t direction_current, direction_t direction_next)
+{
+    // Calculate the rotation needed to reorient on the next direction.
+    char rotation;
+    int rotation_count;
+    direction_rotation(direction_current, direction_next, &rotation,
+            &rotation_count);
+
+    // Make the rotation so.
+    int i;
+    for (i = 0; i < rotation_count; ++i) {
+        switch (rotation) {
+        case 'R': irobot_rotate_right(uart); break;
+        case 'L': irobot_rotate_left(uart);  break;
+        }
+    }
+}
+
+void irobot_move(uart_t *uart, search_cell_t *path)
 {
     const s16 unit_distance_mm = 25*8; // ~8 inches
 
@@ -100,30 +118,19 @@ void robot_move(uart_t *uart, search_cell_t *path)
             continue;
         }
 
-        // Calculate the direction from the delta.
+        // Calculate the direction and rotate.
         direction_t direction_next = direction_from_delta(dx,dy);
-
-        // Calculate the rotation needed to reorient on the next direction.
-        char rotation;
-        int rotation_count;
-        direction_rotation(direction_current, direction_next, &rotation,
-                &rotation_count);
+        irobot_rotate(uart, direction_current, direction_next);
         direction_current = direction_next;
-
-        // Make the rotation so.
-        int i;
-        for (i = 0; i < rotation_count; ++i) {
-            switch (rotation) {
-            case 'R': irobot_rotate_right(uart); break;
-            case 'L': irobot_rotate_left(uart);  break;
-            }
-        }
 
         // Travel a unit distance.
         const int distance_mm =
             irobot_drive_straight_sense(uart,unit_distance_mm);
         printf("drove %d mm\n", distance_mm);
     }
+
+    // Finally, reorient to starting stance.
+    irobot_rotate(uart, direction_current, direction_forward);
 }
 
 // Menu handlers.
@@ -134,21 +141,25 @@ void handler_programmed_route(void *context)
     uart_t *uart = menu_context->uart;
     search_map_t *map = menu_context->map;
 
+    // Verify we can find our goal.
     printf("programmed route\n");
     search_map_initialize(map);
-
-    // Verify we can find our goal.
     search_cell_t *start = search_cell_at(map,0,0);
     search_cell_t *goal = search_cell_at(map,(128/8)/2,(64/8)/2);
     search_find(map, start, goal);
-
-    // Print out our goal.
-    // We should actually move toward it.
-    if (goal->closed) {
-        robot_move(uart, start);
-    } else {
+    if (!goal->closed) {
         printf("panic: could not find goal!\n");
+        return;
     }
+    irobot_move(uart, start);
+
+    search_map_initialize(map);
+    search_find(map, goal, start);
+    if (!goal->closed) {
+        printf("panic: could not find goal!\n");
+        return;
+    }
+    irobot_move(uart, goal);
 }
 
 void handler_user_route(int *coords, int count, void *context)
@@ -293,100 +304,4 @@ int main()
     return 0;
 
 }
-#if 0
-static void irobot_movement_demo(gpio_axi_t *gpio_axi, uart_t *uart)
-{
-    // Do a movement demo.
-    printf("movement demo\n");
-    const s16 unit_distance_mm = 25*8; // ~8 inch
-    u32 buttons;
-    for (;;) {
-        // XXX This interface sucks.
-        // It would be much nicer to have something that samples until non-zero,
-        // and then samples until zero again.
-        buttons = gpio_axi_blocking_read(gpio_axi);
-        if (button_center_pressed(buttons)) {
-            printf("goodbye!\n");
-            break;
-        }
-        // Rate limit command input to 4Hz.
-        usleep(250 * 1000);
 
-        // Process combo buttons first.
-        // both left and right at the same time indicate that we should go back
-        // to safe mode.
-        if (button_right_pressed(buttons) &&
-                button_left_pressed(buttons)) {
-            printf("safe mode\n");
-            const u8 c[] = {128,131};
-            uart_sendv(uart,c,sizeof(c));
-            continue;
-        }
-        if (button_up_pressed(buttons) &&
-                button_down_pressed(buttons)) {
-            printf("play song\n");
-            const u8 c[] = {141,0};
-            uart_sendv(uart,c,sizeof(c));
-            continue;
-        }
-
-        // Process single buttons next.
-        // Forward backwards control direct movement forware and backwards.
-        if (button_up_pressed(buttons)) {
-            printf("backward\n");
-            const int distance = irobot_drive_straight_sense(uart,-unit_distance_mm);
-            printf("tavelled %d mm\n", distance);
-            continue;
-        }
-        if (button_down_pressed(buttons)) {
-            printf("forward\n");
-            const int distance = irobot_drive_straight_sense(uart,unit_distance_mm);
-            printf("travelled %d mm\n", distance);
-            continue;
-        }
-
-        // Left and run control in place turning.
-        if (button_left_pressed(buttons)) {
-            printf("left\n");
-            irobot_rotate_left(uart);
-            continue;
-        }
-        if (button_right_pressed(buttons)) {
-            printf("right\n");
-            irobot_rotate_right(uart);
-            continue;
-        }
-    }
-}
-
-static void irobot_sensor_demo(gpio_axi_t *gpio_axi, uart_t *uart)
-{
-    const int unit_distance_mm = 200;
-
-    // Flush the receive pipe to clear spurious data.
-    int i = uart_recv_flush(uart);
-    printf("flushed %d bytes\n", i);
-
-    // Do a sensor demo.
-    sleep(1);
-    printf("sensor demo\n");
-    u32 buttons;
-    for (;;) {
-        buttons = gpio_axi_blocking_read(gpio_axi);
-        if (button_center_pressed(buttons)) {
-            printf("goodbye!\n");
-            break;
-        }
-
-        // Rate limit command input to 1Hz.
-        sleep(1);
-        irobot_sensor_t s;
-        irobot_read_sensor(uart, &s);
-        printf("bumper %d wall %d\n", s.bumper, s.wall);
-
-        // Flush spurious sensor data (there should be none).
-        i = uart_recv_flush(uart);
-        printf("flushed %d bytes\n", i);
-    }
-}
-#endif
