@@ -1,4 +1,5 @@
-
+// Joshua Emele <jemele@acm.org>
+// Tristan Monroe <twmonroe@eng.ucsd.edu>
 #include <stdlib.h>
 #include <stdio.h>
 #include "platform.h"
@@ -13,193 +14,12 @@
 #include "font_5x7.h"
 #include "Inspire.h"
 #include <stdint.h>
+#include "menu.h"
 
 // Migrate to ssd1306 driver.
 int map_page(int index);
 int map_column(int index);
 int map_index(int x, int y);
-
-u32 readButtons(gpio_axi_t *gpio)
-{
-    u32 Buttons = 0;
-    while (Buttons == 0){
-        Buttons = XGpio_DiscreteRead(&gpio->device, 1);
-        if (Buttons == 1) {
-            print("1\n");
-            usleep(200000);
-        }
-        if (Buttons == 2) {
-            print("2\n");
-            usleep(200000);
-        }
-        if (Buttons == 4) {
-            print("4\n");
-            usleep(200000);
-        }
-        if (Buttons == 8) {
-            print("8\n");
-            usleep(200000);
-        }
-        if (Buttons == 16){
-            print("16\n");
-            usleep(200000);
-        }
-    }
-    return Buttons;
-}
-
-u8 mainMenu(gpio_axi_t *gpio, ssd1306_t *oled)
-{
-    ssd1306_clear(oled);
-    ssd1306_set_page_start(oled, 0);
-    ssd1306_display_string(oled, "* Pre-program");
-    ssd1306_clear_line(oled, 1);
-    ssd1306_display_string(oled, "  (X,Y)");
-    ssd1306_clear_line(oled, 2);
-    ssd1306_display_string(oled, "  Search");
-    ssd1306_clear_line(oled, 3);
-    ssd1306_display_string(oled, "  Quit");
-
-    u32 selection = 0;
-    u8 page = 0;
-    do {
-        selection = readButtons(gpio);
-        if (selection == 8){
-            ssd1306_set_page_start(oled, page);
-            ssd1306_display_string(oled, "  ");
-            if (page == 3) {
-                page = 0;
-            } else {
-                page++;
-            }
-            ssd1306_set_page_start(oled, page);
-            ssd1306_display_string(oled, "* ");
-        }
-
-        if (selection == 1){
-            ssd1306_set_page_start(oled, page);
-            ssd1306_display_string(oled, "  ");
-            if (page == 0) {
-                page = 3;
-            } else {
-                page--;
-            }
-            ssd1306_set_page_start(oled, page);
-            ssd1306_display_string(oled, "* ");
-        }
-    } while (selection != 16);
-
-    ssd1306_clear(oled);
-    return page;
-}
-
-
-void user_input_X_Y(gpio_axi_t *gpio, ssd1306_t *oled, int *xyCoord, int *numCoord)
-{
-    int x = 0;
-    int y = 0;
-    int i = 0;
-    int coordinates = 0;
-
-    ssd1306_clear(oled);
-    ssd1306_display_string(oled, "Enter number of ");
-    ssd1306_set_page_start(oled, 1);
-    ssd1306_display_string(oled, "waypoints:");
-    u32 selct = 0;
-    char waypoints[20];
-    do {
-        selct = readButtons(gpio);
-        if (selct == 1){
-            coordinates++;
-        }
-
-        if ((coordinates>0)&&(selct == 8)){
-            coordinates--;
-        }
-        snprintf(waypoints, sizeof(waypoints), "waypoints: %d      ", coordinates);
-
-        ssd1306_set_page_start(oled, 1);
-        ssd1306_display_string(oled, waypoints);
-    } while (selct != 16);
-
-    *numCoord = coordinates;
-    char text[25];
-    ssd1306_clear(oled);
-    for(i=0; i < coordinates; i++) {
-        x = 0;
-        y = 0;
-
-        ssd1306_set_page_start(oled, 0);
-        ssd1306_display_string(oled, "x: 0    ");
-        ssd1306_set_page_start(oled, 1);
-        ssd1306_display_string(oled, "y: 0    ");
-
-        snprintf(text, sizeof(text), "coordinate %d of %d     ", (i+1), coordinates);
-        ssd1306_set_page_start(oled, 4);
-        ssd1306_display_string(oled, text);
-
-        u32 sel = 0;
-        char xChar[4];
-        char yChar[4];
-        do {
-            sel = readButtons(gpio);
-            if ((sel == 2)&&(x<63)){
-                x++;
-            }
-
-            if ((sel == 4)&&(x>-64)){
-                printf("x: %d\n", x);
-                x--;
-            }
-            if ((sel == 1)&&(y<31)){
-                y++;
-            }
-
-            if ((sel == 8)&&(y>-32)){
-                y--;
-            }
-
-            snprintf(xChar, sizeof(xChar), "%d     ", x);
-            ssd1306_set_page_start(oled, 0);
-            ssd1306_display_string(oled, "x: ");
-            ssd1306_display_string(oled, xChar);
-
-            snprintf(yChar, sizeof(yChar), "%d    ", y);
-            ssd1306_set_page_start(oled, 1);
-            ssd1306_display_string(oled, "y: ");
-            ssd1306_display_string(oled, yChar);
-        } while (sel != 16);
-        *(xyCoord+(2*i)) = x;
-        *(xyCoord+(2*i+1)) = y;
-    }
-  //  *xyCoord = xySet;
-}
-
-void user_input_search_duration(gpio_axi_t *gpio, ssd1306_t *oled, int *time)
-{
-    int t = 0;
-    ssd1306_clear(oled);
-    ssd1306_display_string(oled, "time: 0");
-    ssd1306_set_page_start(oled, 1);
-    ssd1306_display_string(oled, "5s increments");
-    u32 selct = 0;
-    char tChar[5];
-    do {
-        selct = readButtons(gpio);
-        if (selct == 1){
-            t+=5;
-        }
-        if ((t>0)&&(selct == 8)){
-            t-=5;
-        }
-        snprintf(tChar, sizeof(tChar), "%d      ", t);
-
-        ssd1306_set_page_start(oled, 0);
-        ssd1306_display_string(oled, "time: ");
-        ssd1306_display_string(oled, tChar);
-    } while (selct != 16);
-    *time = t;
-}
 
 void write_pixel(ssd1306_t *device, int x, int y, int *map)
 {
@@ -396,6 +216,7 @@ int main()
 
     sleep(2);
 
+#if 0
     // playground area
     ssd1306_clear(&oled1);
     ssd1306_clear(&oled0);
@@ -428,49 +249,9 @@ int main()
     sleep(4);
 
     // end playground area
-    u8 selection = 5;
+#endif
 
-    int t;
-    char task[50];
-    int xyCoord[50];
-    int numCoords = sizeof(xyCoord)/sizeof(*xyCoord);
-    while (selection != 3){
-        //main menu
-        selection = mainMenu(&gpio_axi, &oled0);
-        switch (selection) {
-            case (0) :
-                //run the preprogrammed route
-                strcpy(task, "Programmed route");
-                break;
-
-            case (1) :
-                //run user directed set off x,y coords
-                user_input_X_Y(&gpio_axi, &oled0, xyCoord, &numCoords);
-                strcpy(task, "X,Y Coordinate");
-                for(i=0; i<numCoords*2; i++) {
-                    printf("%d\n", xyCoord[i]);
-                }
-                break;
-
-            case (2) :
-                //search
-                user_input_search_duration(&gpio_axi, &oled0, &t);
-                printf("\nt %d\n",t);
-                strcpy(task, "Area Map/Search");
-                break;
-
-            case (3) :
-                ssd1306_clear(&oled0);
-                ssd1306_display_string(&oled0, "Quitting the program");
-                exit(0);
-        }
-        ssd1306_clear(&oled0);
-        ssd1306_display_string(&oled0, task);
-        ssd1306_set_page_start(&oled0, 1);
-        ssd1306_display_string(&oled0, "Complete");
-        readButtons(&gpio_axi);
-    }
-
+    menu_run(&gpio_axi, &oled0);
     printf("Exit");
     return 0;
 }
