@@ -4,7 +4,13 @@
 #include <unistd.h>
 #include "menu.h"
 
-void menu_run(gpio_axi_t *gpio, ssd1306_t *oled)
+// Handlers that will fire if set when using menu_run.
+fn_programmed_route menu_handler_programmed_route = 0;
+fn_user_route menu_handler_user_route = 0;
+fn_search menu_handler_search = 0;
+
+// Run the menu, invoking any registered handlers as necessary.
+void menu_run(gpio_axi_t *gpio, ssd1306_t *oled, void *context)
 {
     char task[50];
     for (;;) {
@@ -12,16 +18,22 @@ void menu_run(gpio_axi_t *gpio, ssd1306_t *oled)
         switch (selection) {
             case menu_id_programmed_route:
                 strcpy(task, "Programmed route");
+                if (menu_handler_programmed_route) {
+                    menu_handler_programmed_route(context);
+                }
                 break;
 
             case menu_id_user_route: {
                 int i;
-                int xyCoord[50];
-                int numCoords = sizeof(xyCoord)/sizeof(*xyCoord);
-                menu_input_coordinates(gpio, oled, xyCoord, &numCoords);
+                int coords[50];
+                int count = sizeof(coords)/sizeof(*coords);
+                menu_input_coordinates(gpio, oled, coords, &count);
                 strcpy(task, "X,Y Coordinate");
-                for(i=0; i<numCoords*2; i++) {
-                    printf("%d\n", xyCoord[i]);
+                for(i=0; i<count*2; i+=2) {
+                    printf("x:%d y:%d\n", coords[i], coords[i+1]);
+                }
+                if (menu_handler_user_route) {
+                    menu_handler_user_route(coords,count,context);
                 }
                 break;
              }
@@ -31,6 +43,9 @@ void menu_run(gpio_axi_t *gpio, ssd1306_t *oled)
                 menu_input_time(gpio, oled, &t);
                 printf("\nt %d\n",t);
                 strcpy(task, "Area Map/Search");
+                if (menu_handler_search) {
+                    menu_handler_search(t,context);
+                }
                 break;
              }
 

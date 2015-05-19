@@ -13,8 +13,17 @@ enum menu_id_t {
     menu_id_quit             = 3,
 };
 
+typedef void (*fn_programmed_route)(void *context);
+typedef void (*fn_user_route)(int *coords, int count, void *context);
+typedef void (*fn_search)(int time_s, void *context);
+
+// Handlers that will fire if set when using menu_run.
+extern fn_programmed_route menu_handler_programmed_route;
+extern fn_user_route menu_handler_user_route;
+extern fn_search menu_handler_search;
+
 // Run the menuing system.
-void menu_run(gpio_axi_t *gpio, ssd1306_t *oled);
+void menu_run(gpio_axi_t *gpio, ssd1306_t *oled, void *context);
 
 // The main menu, with menu options corresponding to menu_id_t.
 u8 menu_main(gpio_axi_t *gpio, ssd1306_t *oled);

@@ -13,8 +13,18 @@
 #include "Inspire.h"
 #include "search.h"
 
-static void irobot_movement_demo(gpio_axi_t *gpio, uart_t *uart);
-static void irobot_sensor_demo(gpio_axi_t *gpio, uart_t *uart);
+// Menu context.
+typedef struct {
+    uart_t *uart;
+    ssd1306_t *oled[2];
+} menu_context_t;
+
+// Menu handlers.
+void programmed_route(void *context)
+{
+    menu_context_t *c = (menu_context_t*)context;
+    printf("programmed route\n");
+}
 
 // Application driver.
 int main()
@@ -162,15 +172,16 @@ int main()
     const u8 cmd_song_program[] = {140,0,4,62,12,66,12,69,12,74,36};
     uart_sendv(&uart0, cmd_song_program, sizeof(cmd_song_program));
 
-    irobot_movement_demo(&gpio_axi, &uart0);
-    irobot_sensor_demo(&gpio_axi, &uart0);
-
     // Start the integrated menu.
-    menu_run(&gpio_axi, &oled0);
-
+    menu_context_t menu_context = {
+        .uart = &uart0,
+        .oled = { [0] &oled0, [1] &oled1 },
+    };
+    menu_handler_programmed_route = programmed_route;
+    menu_run(&gpio_axi, &oled0, &menu_context);
     return 0;
 }
-
+#if 0
 static void irobot_movement_demo(gpio_axi_t *gpio_axi, uart_t *uart)
 {
     // Do a movement demo.
@@ -266,3 +277,4 @@ static void irobot_sensor_demo(gpio_axi_t *gpio_axi, uart_t *uart)
         printf("flushed %d bytes\n", i);
     }
 }
+#endif
