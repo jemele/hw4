@@ -118,8 +118,7 @@ int main()
     }
     search_map_initialize(&map);
 
-    // Configure buttons. We'll use this to walk through a demonstration.
-    // This also gives us a chance to vet the buttons interface more generally.
+    // Configure buttons.
     gpio_axi_t gpio_axi = {
         .id = XPAR_AXI_GPIO_0_DEVICE_ID,
     };
