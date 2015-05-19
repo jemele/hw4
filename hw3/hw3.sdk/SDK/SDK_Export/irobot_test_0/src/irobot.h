@@ -13,7 +13,11 @@ typedef struct {
 void irobot_read_sensor(uart_t *uart, irobot_sensor_t *s);
 
 // Move in a straight line.
+void irobot_drive_straight_rate(uart_t *uart, s16 rate);
+int irobot_drive_straight_sense(uart_t *uart, s16 distance_mm);
 void irobot_drive_straight(uart_t *uart, s16 distance_mm);
+
+// In place rotation.
 void irobot_rotate_left(uart_t *uart);
 void irobot_rotate_right(uart_t *uart);
 

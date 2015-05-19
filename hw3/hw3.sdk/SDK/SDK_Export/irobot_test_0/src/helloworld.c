@@ -13,12 +13,8 @@
 #include "Inspire.h"
 #include "search.h"
 
-// Practice movement primitives.
-static void irobot_movement_demo0(gpio_axi_t *gpio, uart_t *uart);
-
-// Verify sensor input works for group 6 (all sensor data).
-static void irobot_sensor_demo0(gpio_axi_t *gpio, uart_t *uart);
-static void irobot_sensor_demo1(gpio_axi_t *gpio, uart_t *uart);
+static void irobot_movement_demo(gpio_axi_t *gpio, uart_t *uart);
+static void irobot_sensor_demo(gpio_axi_t *gpio, uart_t *uart);
 
 // Application driver.
 int main()
@@ -166,22 +162,20 @@ int main()
     const u8 cmd_song_program[] = {140,0,4,62,12,66,12,69,12,74,36};
     uart_sendv(&uart0, cmd_song_program, sizeof(cmd_song_program));
 
-    irobot_sensor_demo1(&gpio_axi, &uart0);
-#if 0
-    irobot_movement_demo0(&gpio_axi, &uart0);
-    irobot_sensor_demo0(&gpio_axi, &uart0);
+    irobot_movement_demo(&gpio_axi, &uart0);
+    irobot_sensor_demo(&gpio_axi, &uart0);
+
     // Start the integrated menu.
     menu_run(&gpio_axi, &oled0);
-#endif
 
     return 0;
 }
 
-static void irobot_movement_demo0(gpio_axi_t *gpio_axi, uart_t *uart)
+static void irobot_movement_demo(gpio_axi_t *gpio_axi, uart_t *uart)
 {
     // Do a movement demo.
     printf("movement demo\n");
-    const s16 unit_distance_mm = 26; // ~1 inch
+    const s16 unit_distance_mm = 25*8; // ~8 inch
     u32 buttons;
     for (;;) {
         // XXX This interface sucks.
@@ -217,12 +211,14 @@ static void irobot_movement_demo0(gpio_axi_t *gpio_axi, uart_t *uart)
         // Forward backwards control direct movement forware and backwards.
         if (button_up_pressed(buttons)) {
             printf("backward\n");
-            irobot_drive_straight(uart,-unit_distance_mm);
+            const int distance = irobot_drive_straight_sense(uart,-unit_distance_mm);
+            printf("tavelled %d mm\n", distance);
             continue;
         }
         if (button_down_pressed(buttons)) {
             printf("forward\n");
-            irobot_drive_straight(uart,unit_distance_mm);
+            const int distance = irobot_drive_straight_sense(uart,unit_distance_mm);
+            printf("travelled %d mm\n", distance);
             continue;
         }
 
@@ -240,7 +236,7 @@ static void irobot_movement_demo0(gpio_axi_t *gpio_axi, uart_t *uart)
     }
 }
 
-static void irobot_sensor_demo1(gpio_axi_t *gpio_axi, uart_t *uart)
+static void irobot_sensor_demo(gpio_axi_t *gpio_axi, uart_t *uart)
 {
     const int unit_distance_mm = 200;
 
