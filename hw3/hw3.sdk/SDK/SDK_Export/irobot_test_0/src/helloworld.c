@@ -20,43 +20,106 @@ typedef struct {
     ssd1306_t *oled[2];
 } menu_context_t;
 
+typedef enum {
+    direction_left    = 0,
+    direction_forward = 1,
+    direction_right   = 2,
+    direction_back    = 3,
+} direction_t;
+const char *direction_t_to_string(direction_t v) {
+    static const char *s[] = {
+    [direction_left]    "left",
+    [direction_forward] "forward",
+    [direction_right]   "right",
+    [direction_back]    "back",
+    };
+    return s[v];
+}
+
+#define abs(x) ((x<0)?-x:x)
+#define sign(x) ((x<0)?-1:1)
+
+// Calculate the moves needed to go from one direction to another.
+void direction_rotation(int current, int next, char *rotation, int *count)
+{
+    printf("%s: %s->%s\n", __func__, direction_t_to_string(current),
+            direction_t_to_string(next));
+
+    *count = 0;
+    if (current == next) {
+        return;
+    }
+    int delta = next - current;
+    if (abs(delta) == 3) {
+        delta = -sign(delta);
+    }
+    *rotation = ((delta < 0) ? 'L' : 'R');
+    *count = abs(delta);
+    printf("%s: %s->%s: %d%c\n", __func__, direction_t_to_string(current),
+            direction_t_to_string(next), *count, *rotation);
+}
+
+// Calculate the final orientation of the robot given dx and dy.  This assumes
+// that dx and dy cannot *both* be set, i.e.., diagonal moves are not
+// permitted.
+int direction_from_delta(int dx, int dy)
+{
+    switch (dx) {
+    case -1: return direction_left;
+    case +1: return direction_right;
+    }
+    switch (dy) {
+    case -1: return direction_back;
+    case +1: return direction_forward;
+    }
+
+    // We should never get here
+    printf("panic: unknown direction!\n");
+    return direction_forward;
+}
+
 // High level moving routines.
 void robot_move(uart_t *uart, search_cell_t *path)
 {
+    const s16 unit_distance_mm = 25*8; // ~8 inches
+
+    // We always assume starting on the origin, facing forward.
+    // In a future iteration, someone can tell us our start state.
+    direction_t direction_current = direction_forward;
+
+    // Walk through the path, calculating movement with each cell.
     search_cell_t *c;
-    int x_orientation = 0;
-    int y_orientation = 1;
-    const s16 unit_distance_mm = 20*8;
-    for (c = path->next; c && c->next; c = c->next) {
+    for (c = path->next; c; c = c->next) {
         printf("%d,%d:%d\n", c->x, c->y, c->f);
 
-        // Issue the move. Assume no obstacles.
-        // Calculate the delta.
-        // Assume if we need to -x or +x, we need to rotate first.
-        const int dx = c->prev->x - c->x;
-        const int dy = c->prev->y - c->y;
+        // Calculate the delta, and ignore vacuous moves.
+        const int dx = c->x - c->prev->x;
+        const int dy = c->y - c->prev->y;
         printf("dx %d dy %d\n", dx, dy);
+        if (!dx && !dy) {
+            continue;
+        }
 
-        // We should only need to move in dx or only dy.
-        if (x_orientation != dx) {
-            while (x_orientation-- > dx) {
-                irobot_rotate_left(uart);
-                printf("rotate left\n");
-            }
-            while (x_orientation++ < dx) {
-                irobot_rotate_right(uart);
-                printf("rotate right\n");
-            }
-        }
-        if (y_orientation != dy) {
-            if (y_orientation != dy) {
-                y_orientation *= -1;
-                irobot_rotate_right(uart);
-                printf("rotate right\n");
-                irobot_rotate_right(uart);
-                printf("rotate right\n");
+        // Calculate the direction from the delta.
+        direction_t direction_next = direction_from_delta(dx,dy);
+
+        // Calculate the rotation needed to reorient on the next direction.
+        char rotation;
+        int rotation_count;
+        direction_rotation(direction_current, direction_next, &rotation,
+                &rotation_count);
+        direction_current = direction_next;
+
+        // Make the rotation so.
+        int i;
+        for (i = 0; i < rotation_count; ++i) {
+            switch (rotation) {
+            case 'R': irobot_rotate_right(uart); break;
+            case 'L': irobot_rotate_left(uart);  break;
             }
         }
+
+        // Travel a unit distance.
         const int distance_mm =
             irobot_drive_straight_sense(uart,unit_distance_mm);
         printf("drove %d mm\n", distance_mm);
@@ -76,7 +139,7 @@ void handler_programmed_route(void *context)
 
     // Verify we can find our goal.
     search_cell_t *start = search_cell_at(map,0,0);
-    search_cell_t *goal = search_cell_at(map,15,7);
+    search_cell_t *goal = search_cell_at(map,(128/8)/2,(64/8)/2);
     search_find(map, start, goal);
 
     // Print out our goal.
