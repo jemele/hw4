@@ -29,8 +29,8 @@ void menu_run(gpio_axi_t *gpio, ssd1306_t *oled, void *context);
 u8 menu_main(gpio_axi_t *gpio, ssd1306_t *oled);
 
 // Read selectable number of coordinates from the user.
-void menu_input_coordinates(gpio_axi_t *gpio, ssd1306_t *oled, int *xyCoord,
-        int *numCoord);
+void menu_input_coordinates(gpio_axi_t *gpio, ssd1306_t *oled, int *coords,
+        int *count);
 
 // Read time duration from the user.
 void menu_input_time(gpio_axi_t *gpio, ssd1306_t *oled, int *time);
