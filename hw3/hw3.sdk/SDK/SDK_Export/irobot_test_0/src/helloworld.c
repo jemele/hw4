@@ -2,6 +2,7 @@
 // Tristan Monroe <twmonroe@eng.ucsd.edu>
 #include <stdio.h>
 #include <unistd.h>
+#include <xtime_l.h>
 #include "platform.h"
 #include "gpio.h"
 #include "irobot.h"
@@ -44,7 +45,18 @@ int main()
     // Verify we can find our goal.
     search_cell_t *start = search_cell_at(&map,0,0);
     search_cell_t *goal = search_cell_at(&map,15,7);
+
+    // Benchmark performance to get a feel for pathfinding cost.
+    XTime clock_start, clock_stop;
+    XTime_GetTime(&clock_start);
     search_find(&map, start, goal);
+    XTime_GetTime(&clock_stop);
+
+    const unsigned long long elapsed_ms =
+        (clock_stop-clock_start)/(COUNTS_PER_SECOND/1000);
+    printf("search: start %llu stop %llu difference %llu elapsed ms %llu\n",
+            clock_start, clock_stop, clock_stop-clock_start,
+            elapsed_ms);
 
     // Dump the path if we found the goal.
     if (goal->closed) {
