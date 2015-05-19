@@ -49,7 +49,7 @@ int main()
     if (goal->closed) {
         printf("goal found\n");
         search_cell_t *c;
-        for (c = goal; c->parent; c = c->parent) {
+        for (c = start; c->next; c = c->next) {
             printf("%d,%d:%d\n", c->x, c->y, c->f);
         }
     }

@@ -11,7 +11,7 @@ struct search_cell {
     int x,y;
 
     // used to trace the path.
-    struct search_cell *parent;
+    struct search_cell *prev, *next;
 
     // this cell is on the open list.
     int open, blocked, closed;

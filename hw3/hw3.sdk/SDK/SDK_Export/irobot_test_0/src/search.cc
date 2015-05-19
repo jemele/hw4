@@ -69,7 +69,8 @@ void search_map_initialize(search_map_t *map)
             current->y = j;
             current->g = std::numeric_limits<int>::max();
             current->h = std::numeric_limits<int>::max();
-            current->parent = 0;
+            current->prev = 0;
+            current->next = 0;
             current->open = false;
             current->blocked = false;
             current->closed = false;
@@ -123,12 +124,12 @@ void search_find(search_map_t *map, search_cell_t *start, search_cell_t *goal)
             // better, and if so, use the path through current. Otherwise, use
             // the path through current and place adj on the open list.
             if (adj->open && ((current->g+1) < adj->g)) {
-                adj->parent = current;
+                adj->prev = current;
                 adj->g = current->g + 1; // for now, we assume
                 adj->h = h_distance(adj,goal);
                 adj->f = adj->g + adj->h;
             } else {
-                adj->parent = current;
+                adj->prev = current;
                 adj->g = current->g + 1; // for now, we assume
                 adj->h = h_distance(adj,goal);
                 adj->f = adj->g + adj->h;
@@ -138,4 +139,14 @@ void search_find(search_map_t *map, search_cell_t *start, search_cell_t *goal)
         }
     }
 
+    // If the goal was found and a path exists, build a forward path for
+    // convenience.
+    if (goal->closed) {
+        search_cell_t *c;
+        for (c = goal; c->prev; c = c->prev) {
+            if (c->prev) {
+                c->prev->next = c;
+            }
+        }
+    }
 }

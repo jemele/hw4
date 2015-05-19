@@ -9,7 +9,6 @@ C_SRCS += \
 ../src/irobot.c \
 ../src/menu.c \
 ../src/platform.c \
-../src/priority_queue.c \
 ../src/ssd1306.c \
 ../src/uart.c 
 
@@ -25,7 +24,6 @@ OBJS += \
 ./src/irobot.o \
 ./src/menu.o \
 ./src/platform.o \
-./src/priority_queue.o \
 ./src/ssd1306.o \
 ./src/uart.o  \
 ./src/search.o 
@@ -35,7 +33,6 @@ C_DEPS += \
 ./src/helloworld.d \
 ./src/irobot.d \
 ./src/platform.d \
-./src/priority_queue.d \
 ./src/search.d \
 ./src/ssd1306.d \
 ./src/uart.d 
