@@ -40,7 +40,7 @@ void handler_programmed_route(void *context)
         printf("panic: could not find goal!\n");
         return;
     }
-    irobot_move(uart, start);
+    irobot_move(uart, start, goal);
 
     // Reset the map to find a new goal, but don't clear obstacle memory.
     search_map_initialize(map,0);
@@ -49,7 +49,7 @@ void handler_programmed_route(void *context)
         printf("panic: could not find goal!\n");
         return;
     }
-    irobot_move(uart, goal);
+    irobot_move(uart, goal, start);
 }
 
 // Move through all the user defined waypoints. At each waypoint, play a song.
@@ -83,7 +83,7 @@ void handler_user_route(int *coords, int count, void *context)
             printf("panic: could not find goal!\n");
             return;
         }
-        irobot_move(uart, start);
+        irobot_move(uart, start, goal);
         irobot_play_song(uart, 0);
         start = goal;
     }
@@ -96,7 +96,7 @@ void handler_user_route(int *coords, int count, void *context)
         printf("panic: could not find goal!\n");
         return;
     }
-    irobot_move(uart, start);
+    irobot_move(uart, start, goal);
 }
 
 void handler_search(int time_s, void *context)

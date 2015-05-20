@@ -197,7 +197,7 @@ void irobot_rotate(uart_t *uart, direction_t direction_current, direction_t dire
     }
 }
 
-void irobot_move(uart_t *uart, search_cell_t *path)
+void irobot_move(uart_t *uart, search_cell_t *start, search_cell_t *goal)
 {
     const s16 unit_distance_mm = 24*8; // ~8 inches
 
@@ -207,7 +207,7 @@ void irobot_move(uart_t *uart, search_cell_t *path)
 
     // Walk through the path, calculating movement with each cell.
     search_cell_t *c;
-    for (c = path->next; c; c = c->next) {
+    for (c = start->next; c; c = c->next) {
 
         // Calculate the delta, and ignore vacuous moves.
         const int dx = c->x - c->prev->x;

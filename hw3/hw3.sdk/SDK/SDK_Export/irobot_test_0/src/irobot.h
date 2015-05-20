@@ -42,9 +42,8 @@ int direction_from_delta(int dx, int dy);
 // direction from the current direction.
 void direction_rotation(int current, int next, char *rotation, int *count);
 
-// Move along the path. This assumes the path is well defined, i.e., path->next
-// is available.
-void irobot_move(uart_t *uart, search_cell_t *path);
+// Move along the from start to goal, assuming the path is well defined.
+void irobot_move(uart_t *uart, search_cell_t *start, search_cell_t *goal);
 
 // Play the specified song. Hopefully it's programmed :)
 void irobot_play_song(uart_t *uart, u8 song);
