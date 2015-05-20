@@ -219,8 +219,8 @@ void irobot_rotate(uart_t *uart, direction_t direction_current, direction_t dire
     }
 }
 
-search_cell_t* irobot_move(uart_t *uart, search_map_t *map, search_cell_t *start,
-        search_cell_t *goal, int timeout_s)
+search_cell_t* irobot_move(uart_t *uart, ssd1306_t *oled, search_map_t *map,
+        search_cell_t *start, search_cell_t *goal, int timeout_s)
 {
     const s16 unit_distance_mm = 24*8; // ~8 inches
 
@@ -231,6 +231,9 @@ search_cell_t* irobot_move(uart_t *uart, search_map_t *map, search_cell_t *start
     // We always assume starting on the origin, facing forward.
     // In a future iteration, someone can tell us our start state.
     direction_t direction_current = direction_forward;
+
+    // Mark our starting position on the map.
+    ssd1306_display_square(oled, start->x*8, start->y*8, ssd1306_square_stipple);
 
     // Walk through the path, calculating movement with each cell.
     search_cell_t *c;
@@ -270,8 +273,11 @@ search_cell_t* irobot_move(uart_t *uart, search_map_t *map, search_cell_t *start
         // If we didn't travel the full length, we've hit something.
         // Figure out where the obstacle is, and route around.
         if (distance_mm < unit_distance_mm/2) {
+
+            // Mark and draw the obstacle.
             printf("obstacle found near x:%d y:%d\n", c->x, c->y);
             c->blocked = 1;
+            ssd1306_display_square(oled, c->x*8, c->y*8, ssd1306_square_solid);
 
             printf("backing up %d mm\n", distance_mm);
             irobot_drive_straight(uart, -distance_mm);
@@ -285,6 +291,11 @@ search_cell_t* irobot_move(uart_t *uart, search_map_t *map, search_cell_t *start
                 printf("panic: could not route around obstacle!\n");
                 break;
             }
+        } else {
+
+            // The move was successful, update our position on the map.
+            ssd1306_display_square(oled, c->prev->x*8, c->prev->y*8, ssd1306_square_blank);
+            ssd1306_display_square(oled, c->x*8, c->y*8, ssd1306_square_stipple);
         }
     }
 

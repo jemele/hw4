@@ -4,6 +4,7 @@
 #define _irobot_h_
 
 #include "search.h"
+#include "ssd1306.h"
 #include "uart.h"
 
 typedef struct {
@@ -46,7 +47,7 @@ void direction_rotation(int current, int next, char *rotation, int *count);
 // Move along the from start to goal, assuming the path is well defined.
 // Stop movement if time runs out -- return the final location of the robot.
 // A timeout_s value of 0 will *never* timeout.
-search_cell_t* irobot_move(uart_t *uart, search_map_t *map,
+search_cell_t* irobot_move(uart_t *uart, ssd1306_t *oled, search_map_t *map,
         search_cell_t *start, search_cell_t *goal, int timeout_s);
 
 // Play the specified song. Hopefully it's programmed :)

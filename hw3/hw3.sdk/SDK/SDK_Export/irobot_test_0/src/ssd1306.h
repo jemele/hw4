@@ -52,5 +52,11 @@ void ssd1306_clear_line(ssd1306_t *device, u8 line);
 void ssd1306_clear(ssd1306_t *device);
 void ssd1306_display_character(ssd1306_t *device, char c);
 void ssd1306_display_string(ssd1306_t *device, const char *s);
-void ssd1306_display_square(ssd1306_t *device, int x, int y, int stipple);
+
+enum ssd1306_square_t {
+    ssd1306_square_stipple,
+    ssd1306_square_blank,
+    ssd1306_square_solid,
+};
+void ssd1306_display_square(ssd1306_t *device, int x, int y, int type);
 #endif

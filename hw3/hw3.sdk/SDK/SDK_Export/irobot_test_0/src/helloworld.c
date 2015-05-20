@@ -1,6 +1,7 @@
 // Joshua Emele <jemele@acm.org>
 // Tristan Monroe <twmonroe@eng.ucsd.edu>
 #include <stdio.h>
+#include <stdlib.h>
 #include <unistd.h>
 #include <xtime_l.h>
 #include "platform.h"
@@ -26,7 +27,11 @@ void handler_programmed_route(void *context)
     // Go from the origin to a corner.
     menu_context_t *menu_context = (menu_context_t*)context;
     uart_t *uart = menu_context->uart;
+    ssd1306_t *oled = menu_context->oled[1];
     search_map_t *map = menu_context->map;
+
+    // clear the display
+    ssd1306_clear(oled);
 
     // Verify we can find our goal.
     // We assume each time the programmed route is run, there could be new
@@ -40,7 +45,7 @@ void handler_programmed_route(void *context)
         printf("panic: could not find goal!\n");
         return;
     }
-    irobot_move(uart, map, start, goal, 0);
+    irobot_move(uart, oled, map, start, goal, 0);
 
     // Reset the map to find a new goal, but don't clear obstacle memory.
     search_map_initialize(map,0);
@@ -49,7 +54,7 @@ void handler_programmed_route(void *context)
         printf("panic: could not find goal!\n");
         return;
     }
-    irobot_move(uart, map, goal, start, 0);
+    irobot_move(uart, oled, map, goal, start, 0);
 }
 
 // Move through all the user defined waypoints. At each waypoint, play a song.
@@ -59,7 +64,11 @@ void handler_user_route(int *coords, int count, void *context)
 {
     menu_context_t *menu_context = (menu_context_t*)context;
     uart_t *uart = menu_context->uart;
+    ssd1306_t *oled = menu_context->oled[1];
     search_map_t *map = menu_context->map;
+
+    // clear the display
+    ssd1306_clear(oled);
 
     printf("user route: %d waypoints\n", count);
     search_cell_t *start = search_cell_at(map,0,0);
@@ -83,7 +92,7 @@ void handler_user_route(int *coords, int count, void *context)
             printf("panic: could not find goal!\n");
             return;
         }
-        irobot_move(uart, map, start, goal, 0);
+        irobot_move(uart, oled, map, start, goal, 0);
         irobot_play_song(uart, 0);
         start = goal;
     }
@@ -96,7 +105,7 @@ void handler_user_route(int *coords, int count, void *context)
         printf("panic: could not find goal!\n");
         return;
     }
-    irobot_move(uart, map, start, goal, 0);
+    irobot_move(uart, oled, map, start, goal, 0);
 }
 
 // This will scan an arena for obstacles.
@@ -105,7 +114,11 @@ void handler_search(int time_s, void *context)
 {
     menu_context_t *menu_context = (menu_context_t*)context;
     uart_t *uart = menu_context->uart;
+    ssd1306_t *oled = menu_context->oled[1];
     search_map_t *map = menu_context->map;
+
+    // clear the display
+    ssd1306_clear(oled);
 
     printf("search: %d\n", time_s);
     search_map_initialize(map,1);
@@ -139,7 +152,7 @@ void handler_search(int time_s, void *context)
         }
         search_map_initialize(map,0);
         search_find(map, start, goal);
-        start = irobot_move(uart, map, start, goal, time_s-elapsed_s);
+        start = irobot_move(uart, oled, map, start, goal, time_s-elapsed_s);
     }
 
     // We're done searching!
@@ -149,7 +162,7 @@ void handler_search(int time_s, void *context)
     goal = search_cell_at(map,0,0);
     search_map_initialize(map,0);
     search_find(map,start,goal);
-    irobot_move(uart, map, start, goal, 0);
+    irobot_move(uart, oled, map, start, goal, 0);
 }
 
 // Application driver.

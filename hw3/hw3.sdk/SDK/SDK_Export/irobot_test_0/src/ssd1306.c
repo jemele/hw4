@@ -180,9 +180,8 @@ static int ssd1306_map_column(int index)
     return index/8;
 }
 
-void ssd1306_display_square(ssd1306_t *device, int x, int y, int stipple)
+void ssd1306_display_square(ssd1306_t *device, int x, int y, int type)
 {
-    //origin for the device is in the center of the map
     const int index = ssd1306_map_index(x,y);
     const int page = ssd1306_map_page(index);
     const int column = ssd1306_map_column(x);
@@ -192,17 +191,16 @@ void ssd1306_display_square(ssd1306_t *device, int x, int y, int stipple)
     ssd1306_set_page_start(device, page);
     ssd1306_set_col_start(device, 8*column);
 
-    u8 data = 0xff;
-    int i, hash= 0;
+    const u8 hash_data[] = {0x55,0xaa};
+    u8 data = ((type == ssd1306_square_solid)?~0:0);
+    const int stipple = (type == ssd1306_square_stipple);
+    int i, hash = 0;
     for (i=0; i<8; ++i) {
-        if (stipple && !hash) {
-            data = 0x55;
-        }
-        if (stipple && hash) {
-            data = 0xaa;
+        if (stipple) {
+            data = hash_data[hash];
+            hash ^= 1;
         }
         i2c_data(device->i2c, device->addr, data);
-        hash ^= 1;
     }
     ssd1306_set_page_start(device, 0);
 }
