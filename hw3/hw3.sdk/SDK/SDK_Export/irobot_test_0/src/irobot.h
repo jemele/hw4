@@ -15,6 +15,7 @@ typedef struct {
 void irobot_read_sensor(uart_t *uart, irobot_sensor_t *s);
 
 // Move in a straight line.
+void irobot_drive_straight(uart_t *uart, s16 distance_mm);
 void irobot_drive_straight_rate(uart_t *uart, s16 rate);
 int irobot_drive_straight_sense(uart_t *uart, s16 distance_mm);
 
@@ -43,7 +44,8 @@ int direction_from_delta(int dx, int dy);
 void direction_rotation(int current, int next, char *rotation, int *count);
 
 // Move along the from start to goal, assuming the path is well defined.
-void irobot_move(uart_t *uart, search_cell_t *start, search_cell_t *goal);
+void irobot_move(uart_t *uart, search_map_t *map, search_cell_t *start,
+        search_cell_t *goal);
 
 // Play the specified song. Hopefully it's programmed :)
 void irobot_play_song(uart_t *uart, u8 song);

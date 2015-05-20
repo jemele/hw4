@@ -93,6 +93,28 @@ int irobot_drive_straight_sense(uart_t *uart, s16 distance_mm)
     return (i * polling_interval_ms * abs_speed)/1000; //mm
 }
 
+// Move in a straight line. This *will* move until the appropriate distance is
+// travelled, obstacle or not. Beware!
+void irobot_drive_straight(uart_t *uart, s16 distance_mm)
+{
+    const s16 speed = (distance_mm < 0) ? -100 : 100; //mm/s
+
+    // rotate ccw 90 degrees and stop
+    const u8 c[] = {152,13,
+        137,(speed>>8)&0xff,speed&0xff,0x80,0,
+        156,(distance_mm>>8)&0xff,distance_mm&0xff,
+        137,0,0,0,0};
+    uart_sendv(uart,c,sizeof(c));
+
+    // Run the program.
+    usleep(1000);
+    uart_send(uart,153);
+
+    // Wait for the program to complete.
+    // Ideally, this would be derived from the rotational velocity.
+    usleep(1000 * 500);
+}
+
 // Rotate left.
 void irobot_rotate_left(uart_t *uart)
 {
@@ -197,7 +219,8 @@ void irobot_rotate(uart_t *uart, direction_t direction_current, direction_t dire
     }
 }
 
-void irobot_move(uart_t *uart, search_cell_t *start, search_cell_t *goal)
+void irobot_move(uart_t *uart, search_map_t *map, search_cell_t *start,
+        search_cell_t *goal)
 {
     const s16 unit_distance_mm = 24*8; // ~8 inches
 
@@ -226,6 +249,26 @@ void irobot_move(uart_t *uart, search_cell_t *start, search_cell_t *goal)
         const int distance_mm =
             irobot_drive_straight_sense(uart,unit_distance_mm);
         printf("drove %d mm\n", distance_mm);
+
+        // If we didn't travel the full length, we've hit something.
+        // Figure out where the obstacle is, and route around.
+        if (distance_mm < unit_distance_mm/2) {
+            printf("obstacle found near x:%d y:%d\n", c->x, c->y);
+            c->blocked = 1;
+
+            printf("backing up %d mm\n", distance_mm);
+            irobot_drive_straight(uart, -distance_mm);
+
+            // Pathfind around the obstacle.
+            c = c->prev;
+            printf("find %d,%d->%d,%d\n", c->x,c->y,goal->x,goal->y);
+            search_map_initialize(map,0);
+            search_find(map, c, goal);
+            if (!goal->closed) {
+                printf("panic: could not route around obstacle!\n");
+                break;
+            }
+        }
     }
 
     // Finally, reorient to starting stance.

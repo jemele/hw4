@@ -40,7 +40,7 @@ void handler_programmed_route(void *context)
         printf("panic: could not find goal!\n");
         return;
     }
-    irobot_move(uart, start, goal);
+    irobot_move(uart, map, start, goal);
 
     // Reset the map to find a new goal, but don't clear obstacle memory.
     search_map_initialize(map,0);
@@ -49,7 +49,7 @@ void handler_programmed_route(void *context)
         printf("panic: could not find goal!\n");
         return;
     }
-    irobot_move(uart, goal, start);
+    irobot_move(uart, map, goal, start);
 }
 
 // Move through all the user defined waypoints. At each waypoint, play a song.
@@ -83,7 +83,7 @@ void handler_user_route(int *coords, int count, void *context)
             printf("panic: could not find goal!\n");
             return;
         }
-        irobot_move(uart, start, goal);
+        irobot_move(uart, map, start, goal);
         irobot_play_song(uart, 0);
         start = goal;
     }
@@ -96,13 +96,25 @@ void handler_user_route(int *coords, int count, void *context)
         printf("panic: could not find goal!\n");
         return;
     }
-    irobot_move(uart, start, goal);
+    irobot_move(uart, map, start, goal);
 }
 
 void handler_search(int time_s, void *context)
 {
-    menu_context_t *c = (menu_context_t*)context;
+    menu_context_t *menu_context = (menu_context_t*)context;
+    uart_t *uart = menu_context->uart;
+    search_map_t *map = menu_context->map;
+
     printf("search\n");
+    search_map_initialize(map,1);
+    search_cell_t *start = search_cell_at(map,0,0);
+    search_cell_t *goal = search_cell_at(map,0,6);
+    search_find(map, start, goal);
+    if (!goal->closed) {
+        printf("panic: could not find goal!\n");
+        return;
+    }
+    irobot_move(uart, map, start, goal);
 }
 
 // Application driver.
