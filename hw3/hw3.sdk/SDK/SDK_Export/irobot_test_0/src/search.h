@@ -36,8 +36,10 @@ typedef struct search_map search_map_t;
 int search_map_alloc(search_map_t *map, int dim_x, int dim_y);
 
 // Initialize an allocated search map to defaults. This resets all cell fields
-// to meaningful defaults. This should be called before using search_find.
-void search_map_initialize(search_map_t *map);
+// to meaningful defaults. This should be called before using search_find. If
+// the clear blocked is not set, the blocked attribute on cells will remain.
+// This is useful for searching and obstacle detection.
+void search_map_initialize(search_map_t *map, int clear_blocked);
 
 // Return a reference to the cell in the map at the specified location.
 search_cell_t *search_cell_at(search_map_t *map, int x, int y);

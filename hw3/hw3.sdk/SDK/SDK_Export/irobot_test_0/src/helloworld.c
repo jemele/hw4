@@ -29,8 +29,10 @@ void handler_programmed_route(void *context)
     search_map_t *map = menu_context->map;
 
     // Verify we can find our goal.
+    // We assume each time the programmed route is run, there could be new
+    // obstacles, so we clear the map of obstacles.
     printf("programmed route\n");
-    search_map_initialize(map);
+    search_map_initialize(map,1);
     search_cell_t *start = search_cell_at(map,0,0);
     search_cell_t *goal = search_cell_at(map,(128/8)/2,(64/8)/2);
     search_find(map, start, goal);
@@ -40,7 +42,8 @@ void handler_programmed_route(void *context)
     }
     irobot_move(uart, start);
 
-    search_map_initialize(map);
+    // Reset the map to find a new goal, but don't clear obstacle memory.
+    search_map_initialize(map,0);
     search_find(map, goal, start);
     if (!goal->closed) {
         printf("panic: could not find goal!\n");
@@ -72,7 +75,9 @@ void handler_user_route(int *coords, int count, void *context)
         goal = search_cell_at(map,x,y);
 
         // search and move
-        search_map_initialize(map);
+        // clear obstacle memory only on start;
+        // subsequent waypoints should retain obstacle memory.
+        search_map_initialize(map,i==0);
         search_find(map, start, goal);
         if (!goal->closed) {
             printf("panic: could not find goal!\n");
@@ -85,7 +90,7 @@ void handler_user_route(int *coords, int count, void *context)
 
     // search and return to base
     goal = search_cell_at(map,0,0);
-    search_map_initialize(map);
+    search_map_initialize(map,0);
     search_find(map, start, goal);
     if (!goal->closed) {
         printf("panic: could not find goal!\n");
@@ -116,7 +121,6 @@ int main()
         printf("search_map_alloc failed %d\n", status);
         return status;
     }
-    search_map_initialize(&map);
 
     // Configure buttons.
     gpio_axi_t gpio_axi = {

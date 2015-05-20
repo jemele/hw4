@@ -58,7 +58,7 @@ void search_map_free(search_map_t *map)
 }
 
 // Initialize the map.
-void search_map_initialize(search_map_t *map)
+void search_map_initialize(search_map_t *map, int clear_blocked)
 {
     for (int i = 0; i < map->dim_x; ++i) {
         for (int j = 0; j < map->dim_y; ++j) {
@@ -70,8 +70,10 @@ void search_map_initialize(search_map_t *map)
             current->prev = 0;
             current->next = 0;
             current->open = false;
-            current->blocked = false;
             current->closed = false;
+            if (clear_blocked) {
+                current->blocked = false;
+            }
         }
     }
 }
