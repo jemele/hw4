@@ -40,7 +40,7 @@ void handler_programmed_route(void *context)
         printf("panic: could not find goal!\n");
         return;
     }
-    irobot_move(uart, map, start, goal);
+    irobot_move(uart, map, start, goal, 0);
 
     // Reset the map to find a new goal, but don't clear obstacle memory.
     search_map_initialize(map,0);
@@ -49,7 +49,7 @@ void handler_programmed_route(void *context)
         printf("panic: could not find goal!\n");
         return;
     }
-    irobot_move(uart, map, goal, start);
+    irobot_move(uart, map, goal, start, 0);
 }
 
 // Move through all the user defined waypoints. At each waypoint, play a song.
@@ -83,7 +83,7 @@ void handler_user_route(int *coords, int count, void *context)
             printf("panic: could not find goal!\n");
             return;
         }
-        irobot_move(uart, map, start, goal);
+        irobot_move(uart, map, start, goal, 0);
         irobot_play_song(uart, 0);
         start = goal;
     }
@@ -96,25 +96,60 @@ void handler_user_route(int *coords, int count, void *context)
         printf("panic: could not find goal!\n");
         return;
     }
-    irobot_move(uart, map, start, goal);
+    irobot_move(uart, map, start, goal, 0);
 }
 
+// This will scan an arena for obstacles.
+// It naively assumes that the perimeter is obstacle free.
 void handler_search(int time_s, void *context)
 {
     menu_context_t *menu_context = (menu_context_t*)context;
     uart_t *uart = menu_context->uart;
     search_map_t *map = menu_context->map;
 
-    printf("search\n");
+    printf("search: %d\n", time_s);
     search_map_initialize(map,1);
+
+    XTime time_start;
+    XTime_GetTime(&time_start);
+    int elapsed_s = 0;
+
+    // Start from home.
+    search_cell_t *goal = 0;
     search_cell_t *start = search_cell_at(map,0,0);
-    search_cell_t *goal = search_cell_at(map,0,6);
-    search_find(map, start, goal);
-    if (!goal->closed) {
-        printf("panic: could not find goal!\n");
-        return;
+
+    // Seek out unobstructed random waypoints until we are out of time.
+    for (;;) {
+
+        // Check for timeout.
+        XTime time_now;
+        XTime_GetTime(&time_now);
+        elapsed_s = (time_now - time_start)/COUNTS_PER_SECOND;
+        if (elapsed_s >= time_s) {
+            printf("search timeout (elapsed %ds)\n", elapsed_s);
+            break;
+        }
+
+        // Pick the next scanning goal.
+        // This could simply be a random point.
+        goal = search_cell_at(map,rand()%(128/8), rand()%(64/8));
+        if (goal->blocked) {
+            printf("ignoring blocked goal %d,%d\n", goal->x, goal->y);
+            continue;
+        }
+        search_map_initialize(map,0);
+        search_find(map, start, goal);
+        start = irobot_move(uart, map, start, goal, time_s-elapsed_s);
     }
-    irobot_move(uart, map, start, goal);
+
+    // We're done searching!
+    irobot_play_song(uart, 0);
+
+    // Return home taking as long as necessary.
+    goal = search_cell_at(map,0,0);
+    search_map_initialize(map,0);
+    search_find(map,start,goal);
+    irobot_move(uart, map, start, goal, 0);
 }
 
 // Application driver.

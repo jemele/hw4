@@ -44,8 +44,10 @@ int direction_from_delta(int dx, int dy);
 void direction_rotation(int current, int next, char *rotation, int *count);
 
 // Move along the from start to goal, assuming the path is well defined.
-void irobot_move(uart_t *uart, search_map_t *map, search_cell_t *start,
-        search_cell_t *goal);
+// Stop movement if time runs out -- return the final location of the robot.
+// A timeout_s value of 0 will *never* timeout.
+search_cell_t* irobot_move(uart_t *uart, search_map_t *map,
+        search_cell_t *start, search_cell_t *goal, int timeout_s);
 
 // Play the specified song. Hopefully it's programmed :)
 void irobot_play_song(uart_t *uart, u8 song);

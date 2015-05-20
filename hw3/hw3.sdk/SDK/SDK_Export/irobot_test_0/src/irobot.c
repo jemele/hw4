@@ -119,7 +119,7 @@ void irobot_drive_straight(uart_t *uart, s16 distance_mm)
 void irobot_rotate_left(uart_t *uart)
 {
     const s16 speed = 100; //mm/s
-    const s16 angle = 89;
+    const s16 angle = 90;
     printf("ccw %d degrees\n", angle);
 
     // rotate ccw 90 degrees and stop
@@ -219,10 +219,14 @@ void irobot_rotate(uart_t *uart, direction_t direction_current, direction_t dire
     }
 }
 
-void irobot_move(uart_t *uart, search_map_t *map, search_cell_t *start,
-        search_cell_t *goal)
+search_cell_t* irobot_move(uart_t *uart, search_map_t *map, search_cell_t *start,
+        search_cell_t *goal, int timeout_s)
 {
     const s16 unit_distance_mm = 24*8; // ~8 inches
+
+    // Sample the time, used to track elapsed time.
+    XTime time_start;
+    XTime_GetTime(&time_start);
 
     // We always assume starting on the origin, facing forward.
     // In a future iteration, someone can tell us our start state.
@@ -231,6 +235,19 @@ void irobot_move(uart_t *uart, search_map_t *map, search_cell_t *start,
     // Walk through the path, calculating movement with each cell.
     search_cell_t *c;
     for (c = start->next; c; c = c->next) {
+
+        // Have we timed out? If so, move back one cell (we never did actually
+        // move), and bail..
+        if (timeout_s) {
+            XTime time_now;
+            XTime_GetTime(&time_now);
+            const int elapsed_s = (time_now - time_start)/COUNTS_PER_SECOND;
+            if (elapsed_s > timeout_s) {
+                c = c->prev;
+                printf("timeout x:%d y:%d\n", c->x, c->y);
+                break;
+            }
+        }
 
         // Calculate the delta, and ignore vacuous moves.
         const int dx = c->x - c->prev->x;
@@ -273,6 +290,7 @@ void irobot_move(uart_t *uart, search_map_t *map, search_cell_t *start,
 
     // Finally, reorient to starting stance.
     irobot_rotate(uart, direction_current, direction_forward);
+    return c;
 }
 
 void irobot_play_song(uart_t *uart, u8 song)
