@@ -15,6 +15,7 @@
 	<Step Id="xdl">
 	</Step>
 	<Step Id="bitgen">
+		<Option Id="MoreOptsStr"><![CDATA[-g UnconstrainedPins:Allow]]></Option>
 	</Step>
 </Strategy>
 

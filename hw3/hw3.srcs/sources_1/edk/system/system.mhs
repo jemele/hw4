@@ -25,6 +25,8 @@
  PORT processing_system7_0_DDR_VRP = processing_system7_0_DDR_VRP, DIR = IO
  PORT pushbuttons = net_pushbuttons, DIR = I, VEC = [4:0]
  PORT processing_system7_0_FCLK_CLK0_pin = processing_system7_0_FCLK_CLK0, DIR = O, SIGIS = CLK, CLK_FREQ = 100000000
+ PORT pl_uart_Sin_pin = pl_uart_Sin, DIR = I
+ PORT pl_uart_Sout_pin = pl_uart_Sout, DIR = O
 
 
 BEGIN processing_system7
@@ -136,5 +138,16 @@ BEGIN axi_interconnect
  PARAMETER C_INTERCONNECT_CONNECTIVITY_MODE = 0
  PORT INTERCONNECT_ACLK = processing_system7_0_FCLK_CLK0
  PORT INTERCONNECT_ARESETN = processing_system7_0_FCLK_RESET0_N
+END
+
+BEGIN axi_uart16550
+ PARAMETER INSTANCE = pl_uart
+ PARAMETER HW_VER = 1.01.a
+ PARAMETER C_BASEADDR = 0x42a00000
+ PARAMETER C_HIGHADDR = 0x42a0ffff
+ BUS_INTERFACE S_AXI = axi_interconnect_1
+ PORT S_AXI_ACLK = processing_system7_0_FCLK_CLK0
+ PORT Sin = pl_uart_Sin
+ PORT Sout = pl_uart_Sout
 END
 
