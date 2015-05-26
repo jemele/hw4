@@ -1,46 +1,105 @@
-/*
- * Copyright (c) 2009-2012 Xilinx, Inc.  All rights reserved.
- *
- * Xilinx, Inc.
- * XILINX IS PROVIDING THIS DESIGN, CODE, OR INFORMATION "AS IS" AS A
- * COURTESY TO YOU.  BY PROVIDING THIS DESIGN, CODE, OR INFORMATION AS
- * ONE POSSIBLE   IMPLEMENTATION OF THIS FEATURE, APPLICATION OR
- * STANDARD, XILINX IS MAKING NO REPRESENTATION THAT THIS IMPLEMENTATION
- * IS FREE FROM ANY CLAIMS OF INFRINGEMENT, AND YOU ARE RESPONSIBLE
- * FOR OBTAINING ANY RIGHTS YOU MAY REQUIRE FOR YOUR IMPLEMENTATION.
- * XILINX EXPRESSLY DISCLAIMS ANY WARRANTY WHATSOEVER WITH RESPECT TO
- * THE ADEQUACY OF THE IMPLEMENTATION, INCLUDING BUT NOT LIMITED TO
- * ANY WARRANTIES OR REPRESENTATIONS THAT THIS IMPLEMENTATION IS FREE
- * FROM CLAIMS OF INFRINGEMENT, IMPLIED WARRANTIES OF MERCHANTABILITY
- * AND FITNESS FOR A PARTICULAR PURPOSE.
- *
- */
-
-/*
- * helloworld.c: simple test application
- *
- * This application configures UART 16550 to baud rate 9600.
- * PS7 UART (Zynq) is not initialized by this application, since
- * bootrom/bsp configures it to baud rate 115200
- *
- * ------------------------------------------------
- * | UART TYPE   BAUD RATE                        |
- * ------------------------------------------------
- *   uartns550   9600
- *   uartlite    Configurable only in HW design
- *   ps7_uart    115200 (configured by bootrom/bsp)
- */
-
+// Joshua Emele <jemele@acm.org>
+// Tristan Monroe <twmonroe@eng.ucsd.edu>
 #include <stdio.h>
 #include "platform.h"
+#include <xuartns550.h>
+#include <xuartps_hw.h>
 
-void print(char *str);
+#define DEBUG_UART_BASE_ADDRESS STDIN_BASEADDRESS
+
+int DEBUG_getc_IsReady();
+
+int DEBUG_getc_nowait()
+{
+    int r;
+    if (DEBUG_getc_IsReady()) {
+        r = XUartPs_ReadReg(DEBUG_UART_BASE_ADDRESS, XUARTPS_FIFO_OFFSET);
+        r &= 0xff;
+    } else {
+        r = EOF;
+    }
+    return r;
+}
+
+int DEBUG_getc_IsReady()
+{
+    return XUartPs_IsReceiveData(DEBUG_UART_BASE_ADDRESS);
+}
+
+void pl_uart_tx(XUartNs550 *uart, u8 c)
+{
+    XUartNs550_SendByte(uart->BaseAddress, c);
+}
+
+int pl_uart_rx_nowait(XUartNs550 *uart)
+{
+    int c = XUartNs550_IsReceiveData(uart->BaseAddress);
+    if (c) {
+        c = XUartNs550_RecvByte(uart->BaseAddress);
+        c &= 0xff;
+    } else {
+        c = EOF;
+    }
+    return c;
+}
 
 int main()
 {
     init_platform();
 
-    print("Hello World\n\r");
+    printf("initializing axi uart\n");
+
+    int status;
+
+    XUartNs550_Config *config = XUartNs550_LookupConfig(XPAR_UARTNS550_0_DEVICE_ID);
+    if (!config) {
+        printf("XUartNs550_LookupConfig failed\n");
+        return XST_FAILURE;
+    }
+
+    XUartNs550 uart;
+    status = XUartNs550_CfgInitialize(&uart, config, config->BaseAddress);
+    if (status) {
+        printf("XUartNs550_CfgInitialize failed %d\n", status);
+        return status;
+    }
+
+    XUartNs550_SetBaud(uart.BaseAddress, uart.InputClockHz, 2*115200);
+
+    status = XUartNs550_SelfTest(&uart);
+    if (status) {
+        printf("XUartNs550_SelfTest failed %d\n", status);
+        return status;
+    }
+
+    // Pretty print tx/rx transitions.
+    int tx = 0;
+    for (;;) {
+
+        // process local console input.
+        int c = DEBUG_getc_nowait();
+        if (EOF != c) {
+            if (c == 'Q') {
+                return 0;
+            }
+            if (!tx) {
+                printf("--\npl-uart tx: ");
+                tx = 1;
+            }
+            pl_uart_tx(&uart, c);
+            putchar(c);
+        }
+
+        // process pl uart input.
+        c = pl_uart_rx_nowait(&uart);
+        if (c != EOF) {
+            if (tx) {
+                printf("--\npl-uart rx: ");
+                tx = 0;
+            }
+            putchar(c);
+        }
+    }
 
     return 0;
 }
