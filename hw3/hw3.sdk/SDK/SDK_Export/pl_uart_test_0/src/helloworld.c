@@ -4,6 +4,7 @@
 #include "platform.h"
 #include "irobot.h"
 #include "uart.h"
+#include "bbb.h"
 
 int DEBUG_getc_IsReady()
 {
@@ -49,7 +50,8 @@ int main()
         return status;
     }
 
-    // Pretty print tx/rx transitions.
+    // Read a message from the serial.
+    // Validate the message is well formed and process the message.
     int tx = 0;
     for (;;) {
 
