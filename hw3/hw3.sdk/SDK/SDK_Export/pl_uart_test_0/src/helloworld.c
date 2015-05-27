@@ -2,45 +2,19 @@
 // Tristan Monroe <twmonroe@eng.ucsd.edu>
 #include <stdio.h>
 #include "platform.h"
-#include <xuartns550.h>
-#include <xuartps_hw.h>
-
-#define DEBUG_UART_BASE_ADDRESS STDIN_BASEADDRESS
-
-int DEBUG_getc_IsReady();
-
-int DEBUG_getc_nowait()
-{
-    int r;
-    if (DEBUG_getc_IsReady()) {
-        r = XUartPs_ReadReg(DEBUG_UART_BASE_ADDRESS, XUARTPS_FIFO_OFFSET);
-        r &= 0xff;
-    } else {
-        r = EOF;
-    }
-    return r;
-}
+#include "uart.h"
 
 int DEBUG_getc_IsReady()
 {
-    return XUartPs_IsReceiveData(DEBUG_UART_BASE_ADDRESS);
+    return XUartPs_IsReceiveData(STDIN_BASEADDRESS);
 }
 
-void pl_uart_tx(XUartNs550 *uart, u8 c)
+int DEBUG_getc_nowait()
 {
-    XUartNs550_SendByte(uart->BaseAddress, c);
-}
-
-int pl_uart_rx_nowait(XUartNs550 *uart)
-{
-    int c = XUartNs550_IsReceiveData(uart->BaseAddress);
-    if (c) {
-        c = XUartNs550_RecvByte(uart->BaseAddress);
-        c &= 0xff;
-    } else {
-        c = EOF;
+    if (DEBUG_getc_IsReady()) {
+        return XUartPs_ReadReg(STDIN_BASEADDRESS, XUARTPS_FIFO_OFFSET) & 0xff;
     }
-    return c;
+    return EOF;
 }
 
 int main()
@@ -51,24 +25,13 @@ int main()
 
     int status;
 
-    XUartNs550_Config *config = XUartNs550_LookupConfig(XPAR_UARTNS550_0_DEVICE_ID);
-    if (!config) {
-        printf("XUartNs550_LookupConfig failed\n");
-        return XST_FAILURE;
-    }
-
-    XUartNs550 uart;
-    status = XUartNs550_CfgInitialize(&uart, config, config->BaseAddress);
+    uart_axi_t uart = {
+        .id = XPAR_UARTNS550_0_DEVICE_ID,
+        .baud_rate = 230400,
+    };
+    status = uart_axi_initialize(&uart);
     if (status) {
-        printf("XUartNs550_CfgInitialize failed %d\n", status);
-        return status;
-    }
-
-    XUartNs550_SetBaud(uart.BaseAddress, uart.InputClockHz, 2*115200);
-
-    status = XUartNs550_SelfTest(&uart);
-    if (status) {
-        printf("XUartNs550_SelfTest failed %d\n", status);
+        printf("uart_axi_initialize failed %d\n", status);
         return status;
     }
 
@@ -86,17 +49,17 @@ int main()
                 printf("--\npl-uart tx: ");
                 tx = 1;
             }
-            pl_uart_tx(&uart, c);
+            uart_axi_send(&uart, c);
             putchar(c);
         }
 
-        // process pl uart input.
-        c = pl_uart_rx_nowait(&uart);
-        if (c != EOF) {
+        // process axi uart input.
+        if (uart_axi_recv_ready(&uart)) {
             if (tx) {
                 printf("--\npl-uart rx: ");
                 tx = 0;
             }
+            c = uart_axi_recv(&uart);
             putchar(c);
         }
     }
