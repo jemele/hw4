@@ -56,34 +56,12 @@ void irobot_read_sensor(irobot_t *device, irobot_sensor_t *s)
 
 #define abs(x) ((x<0)?-x:x)
 
-void irobot_drive_straight_rate(irobot_t *device, s16 rate)
+// Drive straight at the specified rate.
+// XXX consider adding a polling cycle as part of the main loop.
+void irobot_drive_straight(irobot_t *device, s16 rate)
 {
     const u8 c[] = {137,(rate>>8)&0xff,rate&0xff,0x80,0};
     uart_sendv(&device->uart,c,sizeof(c));
-}
-
-// Move in a straight line. This *will* move until the appropriate distance is
-// travelled, obstacle or not. Beware!
-// The irobot serial is unresponsive during this period (perhaps the irobot
-// busy loops and does not service serial communications?).
-void irobot_drive_straight(irobot_t *device, s16 distance_mm)
-{
-    const s16 speed = (distance_mm < 0) ? -100 : 100; //mm/s
-
-    // Create a program that drives forward and waits for the distance.
-    const u8 c[] = {152,13,
-        137,(speed>>8)&0xff,speed&0xff,0x80,0,
-        156,(distance_mm>>8)&0xff,distance_mm&0xff,
-        137,0,0,0,0};
-    uart_sendv(&device->uart,c,sizeof(c));
-
-    // Run the program.
-    usleep(1000);
-    uart_send(&device->uart,153);
-
-    // Wait for the program to complete.
-    // Ideally, this would be derived from the rotational velocity.
-    usleep(1000 * 500);
 }
 
 // Rotate left.

@@ -7,8 +7,8 @@
 
 typedef struct {
     unsigned long long timestamp;
-    int bumper;
-    int wall;
+    u8 bumper;
+    u8 wall;
 } irobot_sensor_t;
 
 // Clear the sensor timestamp, invalidating the record.
@@ -29,15 +29,9 @@ int irobot_initialize(irobot_t *device);
 // If provided, sensor will also be populated.
 void irobot_read_sensor(irobot_t *device, irobot_sensor_t *sensor);
 
-// Move in a straight line. This *will* move until the appropriate distance is
-// travelled, obstacle or not. Beware!
-// The irobot serial is unresponsive during this period (perhaps the irobot
-// busy loops and does not service serial communications?).
-void irobot_drive_straight(irobot_t *device, s16 distance_mm);
-
 // Start the robot moving at the specified rate.
 // Positive rates drive forward, negative rates drive backward.
-void irobot_drive_straight_rate(irobot_t *device, s16 rate);
+void irobot_drive_straight(irobot_t *device, s16 rate);
 
 // In place rotation.
 void irobot_rotate_left(irobot_t *device);
