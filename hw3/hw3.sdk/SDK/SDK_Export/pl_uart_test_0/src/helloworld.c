@@ -2,6 +2,7 @@
 // Tristan Monroe <twmonroe@eng.ucsd.edu>
 #include <stdio.h>
 #include "platform.h"
+#include "irobot.h"
 #include "uart.h"
 
 int DEBUG_getc_IsReady()
@@ -32,6 +33,19 @@ int main()
     status = uart_axi_initialize(&uart);
     if (status) {
         printf("uart_axi_initialize failed %d\n", status);
+        return status;
+    }
+
+    // Configure the irobot serial device.
+    irobot_t irobot = {
+        .uart = {
+            .id = XPAR_PS7_UART_0_DEVICE_ID,
+            .baud_rate = 57600,
+        },
+    };
+    status = irobot_initialize(&irobot);
+    if (status) {
+        printf("irobot_initialize failed %d\n", status);
         return status;
     }
 
