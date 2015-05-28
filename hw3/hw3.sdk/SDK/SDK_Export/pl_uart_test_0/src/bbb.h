@@ -4,7 +4,7 @@
 #ifndef _bbb_h_
 #define _bbb_h_
 
-// All fields are transmitted in network byte order.
+// All fields are transmitted in host byte order.
 typedef struct {
 
     // "Magically" identifies the protocol.
@@ -15,8 +15,8 @@ typedef struct {
     u8 id;
 } bbb_header_t;
 
-#define bbb_header_magic_value 0x42
-#define bbb_header_version_value 0
+#define bbb_header_magic_value 0x13
+#define bbb_header_version_value 0x37
 
 // Valid message identifiers.
 enum bbb_id {
@@ -35,9 +35,12 @@ enum bbb_id {
     // A general acknowledgement.
     // Used to indicate the command completed.
     bbb_id_ack              = 3,
+
+    bbb_id_end,
+    bbb_id_begin = bbb_id_drive_straight,
 };
 
-// All fields are transmitted in network byte order.
+// All fields are transmitted in host byte order.
 typedef struct {
     s16 rate;
 } bbb_id_drive_straight_t;

@@ -23,8 +23,12 @@ int uart_axi_recv_ready(uart_axi_t *uart);
 // Blocking receive on the specified device.
 u8 uart_axi_recv(uart_axi_t *uart);
 
+// Flush the device and return the number of bytes flushed.
+int uart_axi_recv_flush(uart_axi_t *uart);
+
 // Send a character to the device.
 void uart_axi_send(uart_axi_t *uart, const u8 data);
+void uart_axi_sendv(uart_axi_t *uart, const u8 *data, int count);
 
 // A convenient struct to bundle xpsuart information.
 typedef struct {
@@ -43,8 +47,7 @@ u8 uart_recv(uart_t *uart);
 // Returns non-zero if recv data is waiting, 0 otherwise.
 int uart_recv_ready(uart_t *uart);
 
-// Flush the uart receive buffer.
-// Returns the number of bytes flushed.
+// Flush the device and return the number of bytes flushed.
 int uart_recv_flush(uart_t *uart);
 
 // Send the specified data.

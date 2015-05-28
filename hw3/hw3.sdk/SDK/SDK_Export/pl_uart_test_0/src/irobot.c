@@ -30,13 +30,51 @@ int irobot_initialize(irobot_t *device)
         printf("uart_initialize failed %d\n", status);
         return status;
     }
-
+    uart_recv_flush(&device->uart);
     irobot_sensor_initialize(&device->sensor);
     return 0;
 }
 
-void irobot_read_sensor(irobot_t *device, irobot_sensor_t *s)
+void irobot_passive_mode(irobot_t *device)
 {
+    const u8 c[] = {128};
+    uart_sendv(&device->uart,c,sizeof(c));
+    const int n = uart_recv_flush(&device->uart);
+    printf("flushed %d\n", n);
+}
+
+void irobot_safe_mode(irobot_t *device)
+{
+    const u8 c[] = {131};
+    uart_sendv(&device->uart,c,sizeof(c));
+    const int n = uart_recv_flush(&device->uart);
+    printf("flushed %d\n", n);
+}
+
+void irobot_full_mode(irobot_t *device)
+{
+    const u8 c[] = {132};
+    uart_sendv(&device->uart,c,sizeof(c));
+    const int n = uart_recv_flush(&device->uart);
+    printf("flushed %d\n", n);
+}
+
+void irobot_read_sensor(irobot_t *device)
+{
+    // Verify the poll period has elapsed.
+    if (device->sensor.timestamp) {
+        XTime now;
+        XTime_GetTime(&now);
+        const XTime elapsed = now - device->sensor.timestamp;
+        const XTime polling_interval =
+            irobot_sensor_polling_interval_ms * (COUNTS_PER_SECOND/1000);
+        if (elapsed < polling_interval) {
+            printf("skipping read\n");
+            return;
+        }
+    }
+
+    // Query packet id 7, 8.
     const u8 c[] = {149,2,7,8};
     uart_sendv(&device->uart,c,sizeof(c));
 
@@ -49,9 +87,6 @@ void irobot_read_sensor(irobot_t *device, irobot_sensor_t *s)
     XTime_GetTime(&device->sensor.timestamp);
     device->sensor.bumper = d[0] & 0x3;
     device->sensor.wall = d[1];
-    if (s) {
-        *s = device->sensor;
-    }
 }
 
 #define abs(x) ((x<0)?-x:x)

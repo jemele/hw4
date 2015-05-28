@@ -43,6 +43,14 @@ void uart_axi_send(uart_axi_t *uart, const u8 c)
     XUartNs550_SendByte(uart->device.BaseAddress, c);
 }
 
+void uart_axi_sendv(uart_axi_t *uart, const u8 *data, int count)
+{
+    int i;
+    for (i = 0; i < count; ++i) {
+        uart_axi_send(uart, data[i]);
+    }
+}
+
 int uart_axi_recv_ready(uart_axi_t *uart)
 {
     return XUartNs550_IsReceiveData(uart->device.BaseAddress);
