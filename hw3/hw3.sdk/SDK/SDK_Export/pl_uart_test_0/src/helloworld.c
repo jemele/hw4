@@ -44,10 +44,11 @@ static void process_console(irobot_t *irobot)
     case 'I':
         printf("reading sensor\n");
         irobot_read_sensor(irobot);
-        printf("irobot: time %llu bumper %d wall %d\n",
+        printf("irobot: time %llu bumper %d wall %d rate %d\n",
                 irobot->sensor.timestamp,
                 irobot->sensor.bumper,
-                irobot->sensor.wall);
+                irobot->sensor.wall,
+                irobot->rate);
         return;
 
     case 'P':
@@ -84,6 +85,7 @@ static void process_bbb_id_drive_straight(uart_axi_t *uart, irobot_t *robot)
     for (i = 0; i < sizeof(message); ++i) {
         b[i] = uart_axi_recv(uart);
     }
+    printf("bbb: drive straight %d\n", message.rate);
 
     // Issue the drive command.
     irobot_drive_straight(robot, message.rate);
@@ -100,6 +102,7 @@ static void process_bbb_id_drive_straight(uart_axi_t *uart, irobot_t *robot)
 // Read the sensor data and write it out in a response.
 static void process_bbb_id_sensor_read(uart_axi_t *uart, irobot_t *irobot)
 {
+    printf("bbb: sensor read\n");
     irobot_read_sensor(irobot);
 
     bbb_header_t header = {
@@ -127,32 +130,16 @@ static void process_bbb(uart_axi_t *uart, irobot_t *irobot)
     }
 
     // Read the header.
+    printf("reading header\n");
     bbb_header_t header;
 
     int i;
     u8 *b = (u8*)&header;
     for (i = 0; i < sizeof(header); ++i) {
         b[i] = uart_axi_recv(uart);
-
-        // Validate magic.
-        const int magic_offset = sizeof(header.magic) - 1;
-        if (i == magic_offset) {
-            if (header.magic != bbb_header_magic_value) {
-                printf("bbb: invalid magic %x\n", header.magic);
-                goto error;
-            }
-        }
-
-        // Validate version.
-        const int version_offset =
-            magic_offset + sizeof(header.version) - 1;
-        if (i == version_offset) {
-            if (header.version != bbb_header_version_value) {
-                printf("bbb: invalid version %x\n", header.version);
-                goto error;
-            }
-        }
     }
+    printf("magic %x version %x id %d\n",
+            header.magic, header.version, header.id);
 
     // Process the message.
     switch (header.id) {
@@ -168,6 +155,7 @@ static void process_bbb(uart_axi_t *uart, irobot_t *irobot)
     }
 
     // Exit without error.
+    printf("message processed\n");
     return;
 
     // We got here because there was an error.
@@ -237,12 +225,10 @@ int main()
         // Process irobot tasks.
         process_irobot(&irobot);
 
-#if 0
         // Process bbb input.
         // If there is a message waiting, this will block until the message is
         // processed or there is an error. On error, this will flush the uart.
         process_bbb(&uart, &irobot);
-#endif
     }
 
     return 0;

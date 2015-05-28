@@ -4,15 +4,17 @@
 #ifndef _bbb_h_
 #define _bbb_h_
 
+#include <stdint.h>
+
 // All fields are transmitted in host byte order.
 typedef struct {
 
     // "Magically" identifies the protocol.
-    u8 magic;
+    uint8_t magic;
     // A version number, if we want to be forward thinking.
-    u8 version;
+    uint8_t version;
     // The id of the encapsulated message.
-    u8 id;
+    uint8_t id;
 } bbb_header_t;
 
 #define bbb_header_magic_value 0x13
@@ -42,12 +44,12 @@ enum bbb_id {
 
 // All fields are transmitted in host byte order.
 typedef struct {
-    s16 rate;
+    int16_t rate;
 } bbb_id_drive_straight_t;
 
 typedef struct {
-    u8 bumper;
-    u8 wall;
+    uint8_t bumper;
+    uint8_t wall;
 } bbb_id_sensor_data_t;
 
 #endif
