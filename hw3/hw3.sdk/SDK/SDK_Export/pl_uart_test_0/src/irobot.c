@@ -69,7 +69,6 @@ void irobot_read_sensor(irobot_t *device)
         const XTime polling_interval =
             irobot_sensor_polling_interval_ms * (COUNTS_PER_SECOND/1000);
         if (elapsed < polling_interval) {
-            printf("skipping read\n");
             return;
         }
     }
@@ -97,6 +96,7 @@ void irobot_drive_straight(irobot_t *device, s16 rate)
 {
     const u8 c[] = {137,(rate>>8)&0xff,rate&0xff,0x80,0};
     uart_sendv(&device->uart,c,sizeof(c));
+    device->rate = rate;
 }
 
 // Rotate left.

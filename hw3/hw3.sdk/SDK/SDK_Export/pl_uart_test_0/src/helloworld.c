@@ -188,7 +188,7 @@ static void process_irobot(irobot_t *device)
 
     // If the bumper is active, stop!
     // This is a software interlock designed to prevent runaway robots.
-    if (device->sensor.bumper) {
+    if (device->sensor.bumper && device->rate) {
         printf("robot: bumper hit, issuing stop\n");
         irobot_drive_straight(device, 0);
     }
@@ -234,10 +234,10 @@ int main()
         // Process console input.
         process_console(&irobot);
 
-#if 0
         // Process irobot tasks.
         process_irobot(&irobot);
 
+#if 0
         // Process bbb input.
         // If there is a message waiting, this will block until the message is
         // processed or there is an error. On error, this will flush the uart.

@@ -20,6 +20,9 @@ void irobot_sensor_initialize(irobot_sensor_t *device);
 typedef struct {
     uart_t uart;
     irobot_sensor_t sensor;
+
+    // The rate, in mm/s, the device is moving.
+    s16 rate;
 } irobot_t;
 
 // Initialize the irobot device struct.
