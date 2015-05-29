@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <unistd.h>
+#include <xtime_l.h>
 #include "platform.h"
 #include "uart.h"
 
@@ -54,6 +55,30 @@ void uart_axi_sendv(uart_axi_t *uart, const u8 *data, int count)
 int uart_axi_recv_ready(uart_axi_t *uart)
 {
     return XUartNs550_IsReceiveData(uart->device.BaseAddress);
+}
+
+int uart_axi_read(uart_axi_t *uart, void *v, int n, int timeout_ms)
+{
+    int r = 0;
+    u8 *b = (u8*)v;
+
+    // Check for data until available or timeout.
+    // Read until full or timeout.
+    XTime start;
+    XTime_GetTime(&start);
+    XTime timeout = start + ((COUNTS_PER_SECOND/1000) * (XTime)timeout_ms);
+    for (; r < n;) {
+        XTime now;
+        XTime_GetTime(&now);
+        if (now > timeout) {
+            printf("timeout %d %d\n", r, n);
+            break;
+        }
+        if (uart_axi_recv_ready(uart)) {
+            b[r++] = uart_axi_recv(uart);
+        }
+    }
+    return r;
 }
 
 int uart_axi_recv_flush(uart_axi_t *uart)

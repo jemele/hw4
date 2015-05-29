@@ -23,6 +23,9 @@ int uart_axi_recv_ready(uart_axi_t *uart);
 // Blocking receive on the specified device.
 u8 uart_axi_recv(uart_axi_t *uart);
 
+// Read until buffer full or timeout, and return the number of bytes read.
+int uart_axi_read(uart_axi_t *uart, void *b, int n, int timeout_ms);
+
 // Flush the device and return the number of bytes flushed.
 int uart_axi_recv_flush(uart_axi_t *uart);
 

@@ -77,13 +77,14 @@ static void process_console(irobot_t *irobot)
 // Issue a drive straight command and respond with an ack.
 static void process_bbb_id_drive_straight(uart_axi_t *uart, irobot_t *robot)
 {
+    int i;
+
     // Read the message.
     bbb_id_drive_straight_t message;
-
-    int i;
-    u8 *b = (u8*)&message;
-    for (i = 0; i < sizeof(message); ++i) {
-        b[i] = uart_axi_recv(uart);
+    i = uart_axi_read(uart, &message, sizeof(message), 500);
+    if (i != sizeof(message)) {
+        printf("%s: read failed %d %d\n", __func__, i, sizeof(message));
+        return ;
     }
     printf("bbb: drive straight %d\n", message.rate);
 
@@ -129,17 +130,29 @@ static void process_bbb(uart_axi_t *uart, irobot_t *irobot)
         return;
     }
 
+    int i;
+#if 0
+    // Act as a dumb echo server.
+    u8 c = uart_axi_recv(uart);
+    uart_axi_send(uart, c);
+    putchar(c);
+#else
     // Read the header.
     printf("reading header\n");
     bbb_header_t header;
-
-    int i;
-    u8 *b = (u8*)&header;
-    for (i = 0; i < sizeof(header); ++i) {
-        b[i] = uart_axi_recv(uart);
+    i = uart_axi_read(uart, &header, sizeof(header), 500);
+    if (i != sizeof(header)) {
+        printf("%s: read failed %d %d\n", __func__, i, sizeof(header));
+        goto error;
     }
+
     printf("magic %x version %x id %d\n",
             header.magic, header.version, header.id);
+    if ((header.magic != bbb_header_magic_value) ||
+            (header.version != bbb_header_version_value)) {
+        printf("invalid header\n");
+        goto error;
+    }
 
     // Process the message.
     switch (header.id) {
@@ -156,13 +169,14 @@ static void process_bbb(uart_axi_t *uart, irobot_t *irobot)
 
     // Exit without error.
     printf("message processed\n");
+#endif
     return;
 
     // We got here because there was an error.
     // Flush the stream and exit.
 error:
-    printf("bbb: flushing uart\n");
-    uart_axi_recv_flush(uart);
+    i = uart_axi_recv_flush(uart);
+    printf("bbb: flushed %d\n", i);
     return;
 }
 

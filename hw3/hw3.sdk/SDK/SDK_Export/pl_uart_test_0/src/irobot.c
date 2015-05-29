@@ -40,7 +40,7 @@ void irobot_passive_mode(irobot_t *device)
     const u8 c[] = {128};
     uart_sendv(&device->uart,c,sizeof(c));
     const int n = uart_recv_flush(&device->uart);
-    printf("flushed %d\n", n);
+    printf("irobot: flushed %d\n", n);
 }
 
 void irobot_safe_mode(irobot_t *device)
@@ -48,7 +48,7 @@ void irobot_safe_mode(irobot_t *device)
     const u8 c[] = {131};
     uart_sendv(&device->uart,c,sizeof(c));
     const int n = uart_recv_flush(&device->uart);
-    printf("flushed %d\n", n);
+    printf("irobot: flushed %d\n", n);
 }
 
 void irobot_full_mode(irobot_t *device)
@@ -56,7 +56,7 @@ void irobot_full_mode(irobot_t *device)
     const u8 c[] = {132};
     uart_sendv(&device->uart,c,sizeof(c));
     const int n = uart_recv_flush(&device->uart);
-    printf("flushed %d\n", n);
+    printf("irobot: flushed %d\n", n);
 }
 
 void irobot_read_sensor(irobot_t *device)
