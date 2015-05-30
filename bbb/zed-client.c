@@ -14,10 +14,17 @@
 #define SERIAL_DEVICE "/dev/ttyO1"
 
 // Serial device context.
+// This is more like an application context...
 typedef struct {
+
     int fd;
     pthread_mutex_t lock;
     int read_timeout_ms;
+
+    int quit;
+    pthread_t sensor_thread;
+    bbb_id_sensor_data_t sensor_data;
+
 } serial_t;
 
 // Initialize the serial device.
@@ -70,9 +77,13 @@ static int serial_read(serial_t *device, void *b, int n)
     return read(device->fd, b, n);
 }
 
-// Process a sensor read request.
-void process_sensor_read(const char *input, serial_t *device)
+// Read the sensor data into the device.
+// Return zero on success, non-zero on failure.
+int sensor_read(serial_t *device)
 {
+    // Assume success!
+    int status = 0;
+
     // Serialize access to the device.
     pthread_mutex_lock(&device->lock);
 
@@ -81,41 +92,61 @@ void process_sensor_read(const char *input, serial_t *device)
         .version = bbb_header_version_value,
         .id = bbb_id_sensor_read,
     };
-    int status = write(device->fd, &header, sizeof(header));
+    status = write(device->fd, &header, sizeof(header));
     if (status == -1) {
         fprintf(stderr, "write failed %d\n", errno);
         goto out;
     }
     if (status != sizeof(header)) {
         fprintf(stderr, "write failed %d %d\n", status, sizeof(header));
+        status = -1;
         goto out;
     }
 
-    // Read the header.
+    // Read and validate the header.
     status = serial_read(device, &header, sizeof(header));
     if (status != sizeof(header)) {
         fprintf(stderr, "read failed %d %d\n", status, errno);
+        status = -1;
         goto out;
     }
-
-    // Print the header.
     if (header.id != bbb_id_sensor_data) {
         printf("invalid message %d\n", header.id);
+        status = -1;
         goto out;
     }
 
     // Read the message.
-    bbb_id_sensor_data_t data;
-    status = serial_read(device, &data, sizeof(data));
-    if (status != sizeof(data)) {
+    status = serial_read(device, &device->sensor_data,
+            sizeof(device->sensor_data));
+    if (status != sizeof(device->sensor_data)) {
         fprintf(stderr, "read failed %d %d\n", status, errno);
+        status = -1;
         goto out;
     }
-    fprintf(stderr, "bumper %d wall %d rate %d direction %d\n",
-            data.bumper, data.wall, data.rate, data.direction);
+
+    // And all is well.
+    status = 0;
 
 out:
     pthread_mutex_unlock(&device->lock);
+    return status;
+}
+
+// Process a sensor read request.
+void process_sensor_read(const char *input, serial_t *device)
+{
+    int status = sensor_read(device);
+    if (status) {
+        fprintf(stderr, "sensor_read failed %d\n", status);
+        return;
+    }
+
+    fprintf(stderr, "bumper %d wall %d rate %d direction %d\n",
+            device->sensor_data.bumper,
+            device->sensor_data.wall,
+            device->sensor_data.rate,
+            device->sensor_data.direction);
 }
 
 // Quit the program.
@@ -309,6 +340,18 @@ void process_input(serial_t *device)
     }
 }
 
+// The sensor thread, used to poll the sensor data.
+// If we're moving and we stop, or when we initially sense the bumper has hit,
+// notify the client.
+void* sensor_thread(void *context)
+{
+    serial_t *serial = (serial_t*)context;
+
+    // Poll sensor data until told to die.
+    // We poll rather slowly :)
+    static const int poll_interval_ms = 1000;
+}
+
 // Application entry point.
 int main(int argc, char **argv)
 {
@@ -324,6 +367,8 @@ int main(int argc, char **argv)
         return status;
     }
     serial.read_timeout_ms = 1250;
+
+    // Start the polling thread, used to indicate when an obstacle has been hit.
 
     // Wait for input with no timeout.
     // We'll process commands until something fails.
