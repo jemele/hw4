@@ -13,21 +13,46 @@
 
 #define SERIAL_DEVICE "/dev/ttyO1"
 
-static int read_serial(int fd, void *b, int n, int timeout_ms)
+// Serial device context.
+typedef struct {
+    int fd;
+    pthread_mutex_t lock;
+    int read_timeout_ms;
+} serial_t;
+
+// Initialize the serial device.
+int serial_init(serial_t *device)
+{
+    device->fd = open(SERIAL_DEVICE, O_RDWR|O_NOCTTY);
+    if (device->fd == -1) {
+        fprintf(stderr, "open failed %d\n", errno);
+        return errno;
+    }
+    int status = tcflush(device->fd, TCIFLUSH);
+    if (status == -1) {
+        fprintf(stderr, "tcflush %d\n", errno);
+        return errno;
+    }
+    pthread_mutex_init(&device->lock,0);
+    return 0;
+}
+
+// Return the number of characters read, or -1 on error.
+static int serial_read(serial_t *device, void *b, int n)
 {
     fd_set set;
     FD_ZERO(&set);
-    FD_SET(fd, &set);
+    FD_SET(device->fd, &set);
     struct timeval timeout = {
-        .tv_sec = timeout_ms/1000,
-        .tv_usec = 1000 * (timeout_ms%1000),
+        .tv_sec = device->read_timeout_ms/1000,
+        .tv_usec = 1000 * (device->read_timeout_ms%1000),
     };
 
     // Wait until character data is available.
-    int status = select(fd+1, &set, 0, 0, &timeout);
+    int status = select(device->fd+1, &set, 0, 0, &timeout);
     if (status == -1) {
         fprintf(stderr, "select failed %d\n", errno);
-        return errno;
+        return -1;
     }
     if (status == 0) {
         fprintf(stderr, "select timeout\n");
@@ -36,32 +61,20 @@ static int read_serial(int fd, void *b, int n, int timeout_ms)
 
     // Set up the read to block until all characters are received or timeout.
     struct termios topt;
-    tcgetattr(fd, &topt);
+    tcgetattr(device->fd, &topt);
     topt.c_cc[VMIN] = n;
-    topt.c_cc[VTIME] = timeout_ms/100;
-    tcsetattr(fd,TCSANOW,&topt);
+    topt.c_cc[VTIME] = device->read_timeout_ms/100;
+    tcsetattr(device->fd,TCSANOW,&topt);
 
-    // Finally, read and validate.
-    status = read(fd, b, n);
-    if ((status == -1) || (status < n)) {
-        fprintf(stderr, "read failed %d %d\n", status, errno);
-        return errno;
-    }
-    return status;
+    // Read and all is well.
+    return read(device->fd, b, n);
 }
 
-int main(int argc, char **argv)
+// Process a sensor read request.
+void process_sensor_read(serial_t *device)
 {
-    int fd = open(SERIAL_DEVICE, O_RDWR|O_NOCTTY);
-    if (fd == -1) {
-        fprintf(stderr, "open failed %s %s\n", argv[1], strerror(errno));
-        return errno;
-    }
-    int status = tcflush(fd, TCIFLUSH);
-    if (status == -1) {
-        fprintf(stderr, "tcflush %d\n", errno);
-        return errno;
-    }
+    // Serialize access to the device.
+    pthread_mutex_lock(&device->lock);
 
     printf("writing request\n");
     bbb_header_t header = {
@@ -69,22 +82,22 @@ int main(int argc, char **argv)
         .version = bbb_header_version_value,
         .id = bbb_id_sensor_read,
     };
-    status = write(fd, &header, sizeof(header));
+    int status = write(device->fd, &header, sizeof(header));
     if (status == -1) {
-        fprintf(stderr, "write failed %s\n", strerror(errno));
-        return errno;
+        fprintf(stderr, "write failed %d\n", errno);
+        goto out;
     }
     if (status != sizeof(header)) {
         fprintf(stderr, "write failed %d %d\n", status, sizeof(header));
-        return EIO;
+        goto out;
     }
 
     // Read the header.
     printf("reading response header\n");
-    status = read_serial(fd, &header, sizeof(header), 750);
+    status = serial_read(device, &header, sizeof(header));
     if (status != sizeof(header)) {
         fprintf(stderr, "read failed %d %d\n", status, errno);
-        return errno;
+        goto out;
     }
 
     // Print the header.
@@ -92,18 +105,36 @@ int main(int argc, char **argv)
             header.magic, header.version, header.id);
     if (header.id != bbb_id_sensor_data) {
         printf("invalid message %d\n", header.id);
-        return;
+        goto out;
     }
 
     // Read the message.
     bbb_id_sensor_data_t data;
-    status = read_serial(fd, &data, sizeof(data), 750);
+    status = serial_read(device, &data, sizeof(data));
     if (status != sizeof(data)) {
         fprintf(stderr, "read failed %d %d\n", status, errno);
-        return errno;
+        goto out;
     }
     printf("bumper %d wall %d\n",
             data.bumper, data.wall);
 
+out:
+    pthread_mutex_unlock(&device->lock);
+}
+
+// Application entry point.
+int main(int argc, char **argv)
+{
+    int status;
+
+    serial_t serial;
+    status = serial_init(&serial);
+    if (status) {
+        fprintf(stderr, "serial_init failed %d\n", status);
+        return status;
+    }
+    serial.read_timeout_ms = 1250;
+
+    process_sensor_read(&serial);
     return 0;
 }
