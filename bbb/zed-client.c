@@ -41,6 +41,7 @@ int serial_init(serial_t *device)
         return errno;
     }
     pthread_mutex_init(&device->lock,0);
+    device->quit = 0;
     return 0;
 }
 
@@ -153,7 +154,7 @@ void process_sensor_read(const char *input, serial_t *device)
 void process_quit(const char *line, serial_t *device)
 {
     fprintf(stderr, "goodbye\n");
-    exit(0);
+    device->quit = 1;
 }
 
 // Turn left.
@@ -317,7 +318,8 @@ void process_input(serial_t *device)
     int status = getline(&line, &n, stdin);
     if (-1 == status) {
         fprintf(stderr, "getline failed %d\n", errno);
-        exit(0);
+        device->quit = 1;
+        return;
     }
 
     // Find the matching handler.
@@ -343,13 +345,27 @@ void process_input(serial_t *device)
 // The sensor thread, used to poll the sensor data.
 // If we're moving and we stop, or when we initially sense the bumper has hit,
 // notify the client.
-void* sensor_thread(void *context)
+void* sensor_thread_handler(void *context)
 {
-    serial_t *serial = (serial_t*)context;
+    serial_t *device = (serial_t*)context;
 
     // Poll sensor data until told to die.
     // We poll rather slowly :)
     static const int poll_interval_ms = 1000;
+    while (!device->quit) {
+
+        // Read the sensor data.
+        // If we hit an obstacle, notify the connected client.
+        int status = sensor_read(device);
+        if (!status) {
+            if (device->sensor_data.bumper || device->sensor_data.wall) {
+                fprintf(stderr, "obstacle detected\n");
+            }
+        }
+
+        // Sleep until the next polling interval.
+        usleep(poll_interval_ms*1000);
+    }
 }
 
 // Application entry point.
@@ -360,15 +376,22 @@ int main(int argc, char **argv)
     // Open the serial device, which will grant this process exlusive access.
     // This will prevent multiple processes from accessing the zed/bbb
     // interface simultaneously.
-    serial_t serial;
-    status = serial_init(&serial);
+    serial_t device;
+    status = serial_init(&device);
     if (status) {
         fprintf(stderr, "serial_init failed %d\n", status);
         return status;
     }
-    serial.read_timeout_ms = 1250;
+    device.read_timeout_ms = 1250;
 
-    // Start the polling thread, used to indicate when an obstacle has been hit.
+    // Start the polling thread, used to indicate when an obstacle has been
+    // hit. If an obstacle is detected, the client will be notified.
+    status = pthread_create(&device.sensor_thread, 0, sensor_thread_handler,
+            &device);
+    if (status) {
+        fprintf(stderr, "pthread_create failed %d\n", status);
+        return status;
+    }
 
     // Wait for input with no timeout.
     // We'll process commands until something fails.
@@ -376,14 +399,19 @@ int main(int argc, char **argv)
     FD_ZERO(&set);
     FD_SET(STDIN_FILENO, &set);
 
-    for (;;) {
+    // Process input until told to quit.
+    while (!device.quit) {
         status = select(STDIN_FILENO+1, &set, 0, 0, 0);
         if (status == -1) {
             fprintf(stderr, "selected failed %d\n", errno);
             return errno;
         }
-        process_input(&serial);
+        process_input(&device);
     }
 
+    // Wait for the polling thread.
+    pthread_join(device.sensor_thread,0);
+
+    // And all is well.
     return 0;
 }
