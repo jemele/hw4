@@ -1,0 +1,14 @@
+# default: on
+# description: An xinetd irobot service.
+# This is the tcp version.
+service irobot
+{
+    disable     = no
+    type        = UNLISTED
+    socket_type = stream
+    protocol    = tcp
+    port        = 31337
+    user        = root
+    wait        = no
+    server      = /root/bbb/zed-client
+}
