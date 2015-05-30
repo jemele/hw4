@@ -1,0 +1,7 @@
+#!/bin/sh -e
+# This is used to initialize the serial device on boot.
+# This file should be copied to /etc/rc.local
+echo on > /sys/devices/ocp.3/47400000.usb/musb-hdrc.0.auto/power/control
+/bin/echo BB-UART1 > /sys/devices/bone_capemgr.9/slots
+sleep 1
+/bin/stty -F /dev/ttyO1 230400 raw -echo
