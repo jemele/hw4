@@ -125,6 +125,78 @@ void process_quit(const char *line, serial_t *device)
     exit(0);
 }
 
+// Turn left.
+void process_left(const char *line, serial_t *device)
+{
+    // Serialize access to the device.
+    pthread_mutex_lock(&device->lock);
+
+    bbb_header_t header = {
+        .magic = bbb_header_magic_value,
+        .version = bbb_header_version_value,
+        .id = bbb_id_rotate_left,
+    };
+    int status = write(device->fd, &header, sizeof(header));
+    if (status == -1) {
+        fprintf(stderr, "write failed %d\n", errno);
+        goto out;
+    }
+    if (status != sizeof(header)) {
+        fprintf(stderr, "write failed %d %d\n", status, sizeof(header));
+        goto out;
+    }
+
+    // Read the header.
+    status = serial_read(device, &header, sizeof(header));
+    if (status != sizeof(header)) {
+        fprintf(stderr, "read failed %d %d\n", status, errno);
+        goto out;
+    }
+    if (header.id != bbb_id_ack) {
+        fprintf(stderr, "invalid message %d\n", header.id);
+        goto out;
+    }
+
+out:
+    pthread_mutex_unlock(&device->lock);
+}
+
+// Turn right.
+void process_right(const char *line, serial_t *device)
+{
+    // Serialize access to the device.
+    pthread_mutex_lock(&device->lock);
+
+    bbb_header_t header = {
+        .magic = bbb_header_magic_value,
+        .version = bbb_header_version_value,
+        .id = bbb_id_rotate_right,
+    };
+    int status = write(device->fd, &header, sizeof(header));
+    if (status == -1) {
+        fprintf(stderr, "write failed %d\n", errno);
+        goto out;
+    }
+    if (status != sizeof(header)) {
+        fprintf(stderr, "write failed %d %d\n", status, sizeof(header));
+        goto out;
+    }
+
+    // Read the header.
+    status = serial_read(device, &header, sizeof(header));
+    if (status != sizeof(header)) {
+        fprintf(stderr, "read failed %d %d\n", status, errno);
+        goto out;
+    }
+    if (header.id != bbb_id_ack) {
+        fprintf(stderr, "invalid message %d\n", header.id);
+        goto out;
+    }
+
+out:
+    pthread_mutex_unlock(&device->lock);
+}
+
 // The command handlers.
 typedef void(*handler_t)(const char*, serial_t*);
 typedef struct {
@@ -132,8 +204,10 @@ typedef struct {
     handler_t handler;
 } command_t;
 command_t commands[] = {
-    { .name = "sensor", .handler = process_sensor_read },
-    { .name = "quit", .handler = process_quit },
+    { .name = "sensor",     .handler = process_sensor_read },
+    { .name = "left",       .handler = process_left },
+    { .name = "right",      .handler = process_right },
+    { .name = "quit",       .handler = process_quit },
 };
 
 // Process command on the input file stream.
@@ -154,6 +228,8 @@ void process_input(serial_t *device)
     }
 
     // Find the matching handler.
+    // While a linear scan isn't optimal, it does the job for small numbers of
+    // commands.
     int i;
     for (i = 0; i < sizeof(commands)/sizeof(*commands); ++i) {
         if (!strncmp(line, commands[i].name, sizeof(commands[i].name))) {
