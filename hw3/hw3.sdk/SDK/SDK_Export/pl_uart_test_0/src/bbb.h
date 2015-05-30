@@ -58,6 +58,7 @@ typedef struct {
     uint8_t wall;
     int16_t rate;
     uint8_t direction;
+    int32_t distance;
 } bbb_id_sensor_data_t;
 
 #endif

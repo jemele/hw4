@@ -77,12 +77,12 @@ void irobot_read_sensor(irobot_t *device)
         }
     }
 
-    // Query packet id 7, 8.
-    const u8 c[] = {149,2,7,8};
+    // Query packet id 7, 8, 19.
+    const u8 c[] = {149,3,7,8,19};
     uart_sendv(&device->uart,c,sizeof(c));
 
     int i;
-    u8 d[2];
+    u8 d[4];
     for (i = 0; i < sizeof(d); ++i) {
         d[i] = uart_recv(&device->uart);
     }
@@ -90,6 +90,11 @@ void irobot_read_sensor(irobot_t *device)
     XTime_GetTime(&device->sensor.timestamp);
     device->sensor.bumper = d[0] & 0x3;
     device->sensor.wall = d[1];
+    device->sensor.distance = (d[2]<<8)|d[3];
+
+    // Accumulate the distance travelled.
+    // XXX Use direction to determine component <x,y> distance.
+    device->distance += device->sensor.distance;
 }
 
 #define abs(x) ((x<0)?-x:x)

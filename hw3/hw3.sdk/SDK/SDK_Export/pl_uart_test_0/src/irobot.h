@@ -9,6 +9,7 @@ typedef struct {
     unsigned long long timestamp;
     u8 bumper;
     u8 wall;
+    s16 distance;
 } irobot_sensor_t;
 
 #define irobot_sensor_polling_interval_ms 15ULL
@@ -37,6 +38,12 @@ typedef struct {
     // The direction the robot is facing.
     // This assumes the robot starts facing forward.
     direction_t direction;
+
+    // The cumulative distance travelled by the robot.
+    // For now, this ignores direction and just accumulates.
+    // Later on, we'll use the direction to keep track of <x,y>.
+    int distance;
+
 } irobot_t;
 
 // Initialize the irobot device struct.

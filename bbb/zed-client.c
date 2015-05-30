@@ -143,11 +143,12 @@ void process_sensor_read(const char *input, serial_t *device)
         return;
     }
 
-    fprintf(stderr, "bumper %d wall %d rate %d direction %d\n",
+    fprintf(stderr, "bumper %d wall %d rate %d direction %d distance %d\n",
             device->sensor_data.bumper,
             device->sensor_data.wall,
             device->sensor_data.rate,
-            device->sensor_data.direction);
+            device->sensor_data.direction,
+            device->sensor_data.distance);
 }
 
 // Quit the program.
