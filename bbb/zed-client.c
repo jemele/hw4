@@ -28,7 +28,7 @@ typedef struct {
 } serial_t;
 
 // Initialize the serial device.
-int serial_init(serial_t *device)
+static int serial_init(serial_t *device)
 {
     device->fd = open(SERIAL_DEVICE, O_RDWR|O_NOCTTY);
     if (device->fd == -1) {
@@ -80,7 +80,7 @@ static int serial_read(serial_t *device, void *b, int n)
 
 // Read the sensor data into the device.
 // Return zero on success, non-zero on failure.
-int sensor_read(serial_t *device)
+static int sensor_read(serial_t *device)
 {
     // Assume success!
     int status = 0;
@@ -135,7 +135,7 @@ out:
 }
 
 // Process a sensor read request.
-void process_sensor_read(const char *input, serial_t *device)
+static void process_sensor_read(const char *input, serial_t *device)
 {
     int status = sensor_read(device);
     if (status) {
@@ -153,14 +153,14 @@ void process_sensor_read(const char *input, serial_t *device)
 }
 
 // Quit the program.
-void process_quit(const char *line, serial_t *device)
+static void process_quit(const char *line, serial_t *device)
 {
     fprintf(stderr, "goodbye\n");
     device->quit = 1;
 }
 
 // Turn left.
-void process_left(const char *line, serial_t *device)
+static void process_left(const char *line, serial_t *device)
 {
     // Serialize access to the device.
     pthread_mutex_lock(&device->lock);
@@ -196,7 +196,7 @@ out:
 }
 
 // Turn right.
-void process_right(const char *line, serial_t *device)
+static void process_right(const char *line, serial_t *device)
 {
     // Serialize access to the device.
     pthread_mutex_lock(&device->lock);
@@ -234,7 +234,7 @@ out:
 // Move forward. If the robot hits an obstacle, it will stop on its own.
 // We'll need to poll the robot sensor data so we can alert the connected
 // client when an obstacle is hit.
-void process_forward(const char *line, serial_t *device)
+static void process_forward(const char *line, serial_t *device)
 {
     int status;
 
@@ -292,6 +292,23 @@ out:
     pthread_mutex_unlock(&device->lock);
 }
 
+// Go to the goal specified by x,y.
+// This relies on the polling context to service the necessary commands.
+static void process_goto(const char *line, serial_t *device)
+{
+    int status;
+
+    int x, y;
+    status = sscanf(line, "%d %d", &x, &y);
+    if (status != 2) {
+        fprintf(stderr, "invalid goto:%s\n", line);
+        return;
+    }
+    fprintf(stderr, "goto: %d,%d\n", x, y);
+
+    // XXX go to the actual goal
+}
+
 // The command handlers.
 typedef void(*handler_t)(const char*, serial_t*);
 typedef struct {
@@ -303,6 +320,7 @@ command_t commands[] = {
     { .name = "forward",    .handler = process_forward },
     { .name = "left",       .handler = process_left },
     { .name = "right",      .handler = process_right },
+    { .name = "goto",       .handler = process_goto },
     { .name = "quit",       .handler = process_quit },
 };
 
@@ -310,7 +328,7 @@ command_t commands[] = {
 // Commands are a line of character text, with tokens separated by a single
 // space. The first token is always the command, subsequent tokens are
 // arguments to the command.
-void process_input(serial_t *device)
+static void process_input(serial_t *device)
 {
     size_t n = 0;
     char *line = 0;
@@ -347,7 +365,7 @@ void process_input(serial_t *device)
 // The sensor thread, used to poll the sensor data.
 // If we're moving and we stop, or when we initially sense the bumper has hit,
 // notify the client.
-void* sensor_thread_handler(void *context)
+static void* sensor_thread_handler(void *context)
 {
     serial_t *device = (serial_t*)context;
 
