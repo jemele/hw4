@@ -60,7 +60,7 @@ static void process_console(irobot_t *irobot)
         printf("reading sensor\n");
         irobot_read_sensor(irobot);
         printf("irobot: time %llu bumper %d wall %d distance %d "
-                "rate %d direction %d (%s) distance %d\n",
+                "rate %d direction %d (%s) x %d y %d\n",
                 irobot->sensor.timestamp,
                 irobot->sensor.bumper,
                 irobot->sensor.wall,
@@ -68,7 +68,7 @@ static void process_console(irobot_t *irobot)
                 irobot->rate,
                 irobot->direction,
                 direction_t_to_string(irobot->direction),
-                irobot->distance);
+                irobot->x, irobot->y);
         return;
 
     // Modes
@@ -137,7 +137,8 @@ static void process_bbb_id_sensor_read(uart_axi_t *uart, irobot_t *irobot)
         .wall = irobot->sensor.wall,
         .rate = irobot->rate,
         .direction = irobot->direction,
-        .distance = irobot->distance,
+        .x = irobot->x,
+        .y = irobot->y,
     };
     uart_axi_sendv(uart, (u8*)&header, sizeof(header));
     uart_axi_sendv(uart, (u8*)&message, sizeof(message));

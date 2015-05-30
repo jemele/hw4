@@ -35,6 +35,8 @@ int irobot_initialize(irobot_t *device)
 
     device->rate = 0;
     device->direction = direction_forward;
+    device->x = 0;
+    device->y = 0;
 
     return 0;
 }
@@ -91,10 +93,28 @@ void irobot_read_sensor(irobot_t *device)
     device->sensor.bumper = d[0] & 0x3;
     device->sensor.wall = d[1];
     device->sensor.distance = (d[2]<<8)|d[3];
+    printf("direction %d %s distance %d\n",
+            device->direction,
+            direction_t_to_string(device->direction),
+            device->sensor.distance);
 
     // Accumulate the distance travelled.
-    // XXX Use direction to determine component <x,y> distance.
-    device->distance += device->sensor.distance;
+    switch (device->direction) {
+    case direction_left:
+        device->x -= device->sensor.distance;
+        break;
+    case direction_right:
+        device->x += device->sensor.distance;
+        break;
+    case direction_forward:
+        device->y += device->sensor.distance;
+        break;
+    case direction_back:
+        device->y -= device->sensor.distance;
+        break;
+    default: 
+        break;
+    }
 }
 
 #define abs(x) ((x<0)?-x:x)

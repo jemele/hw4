@@ -143,12 +143,13 @@ void process_sensor_read(const char *input, serial_t *device)
         return;
     }
 
-    fprintf(stderr, "bumper %d wall %d rate %d direction %d distance %d\n",
+    fprintf(stderr, "bumper %d wall %d rate %d direction %d x %d y %d\n",
             device->sensor_data.bumper,
             device->sensor_data.wall,
             device->sensor_data.rate,
             device->sensor_data.direction,
-            device->sensor_data.distance);
+            device->sensor_data.x,
+            device->sensor_data.y);
 }
 
 // Quit the program.
@@ -360,7 +361,9 @@ void* sensor_thread_handler(void *context)
         int status = sensor_read(device);
         if (!status) {
             if (device->sensor_data.bumper || device->sensor_data.wall) {
-                fprintf(stderr, "obstacle detected\n");
+                fprintf(stderr, "obstacle: x %d y %d\n",
+                        device->sensor_data.x,
+                        device->sensor_data.y);
             }
         }
 

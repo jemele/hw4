@@ -40,9 +40,8 @@ typedef struct {
     direction_t direction;
 
     // The cumulative distance travelled by the robot.
-    // For now, this ignores direction and just accumulates.
-    // Later on, we'll use the direction to keep track of <x,y>.
-    int distance;
+    // This derived from the distance and direction.
+    int x, y;
 
 } irobot_t;
 
