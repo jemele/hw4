@@ -71,12 +71,11 @@ static int serial_read(serial_t *device, void *b, int n)
 }
 
 // Process a sensor read request.
-void process_sensor_read(serial_t *device)
+void process_sensor_read(const char *input, serial_t *device)
 {
     // Serialize access to the device.
     pthread_mutex_lock(&device->lock);
 
-    printf("writing request\n");
     bbb_header_t header = {
         .magic = bbb_header_magic_value,
         .version = bbb_header_version_value,
@@ -93,7 +92,6 @@ void process_sensor_read(serial_t *device)
     }
 
     // Read the header.
-    printf("reading response header\n");
     status = serial_read(device, &header, sizeof(header));
     if (status != sizeof(header)) {
         fprintf(stderr, "read failed %d %d\n", status, errno);
@@ -101,8 +99,6 @@ void process_sensor_read(serial_t *device)
     }
 
     // Print the header.
-    printf("magic %x version %x id %d\n",
-            header.magic, header.version, header.id);
     if (header.id != bbb_id_sensor_data) {
         printf("invalid message %d\n", header.id);
         goto out;
@@ -115,11 +111,64 @@ void process_sensor_read(serial_t *device)
         fprintf(stderr, "read failed %d %d\n", status, errno);
         goto out;
     }
-    printf("bumper %d wall %d\n",
-            data.bumper, data.wall);
+    fprintf(stderr, "bumper %d wall %d rate %d direction %d\n",
+            data.bumper, data.wall, data.rate, data.direction);
 
 out:
     pthread_mutex_unlock(&device->lock);
+}
+
+// Quit the program.
+void process_quit(const char *line, serial_t *device)
+{
+    fprintf(stderr, "goodbye\n");
+    exit(0);
+}
+
+// The command handlers.
+typedef void(*handler_t)(const char*, serial_t*);
+typedef struct {
+    const char *name;
+    handler_t handler;
+} command_t;
+command_t commands[] = {
+    { .name = "sensor", .handler = process_sensor_read },
+    { .name = "quit", .handler = process_quit },
+};
+
+// Process command on the input file stream.
+// Commands are a line of character text, with tokens separated by a single
+// space. The first token is always the command, subsequent tokens are
+// arguments to the command.
+void process_input(serial_t *device)
+{
+    size_t n = 0;
+    char *line = 0;
+
+    // Read input ... if getline fails, our input has closed.
+    // That's our sign to bail.
+    int status = getline(&line, &n, stdin);
+    if (-1 == status) {
+        fprintf(stderr, "getline failed %d\n", errno);
+        exit(0);
+    }
+
+    // Find the matching handler.
+    int i;
+    for (i = 0; i < sizeof(commands)/sizeof(*commands); ++i) {
+        if (!strncmp(line, commands[i].name, sizeof(commands[i].name))) {
+            commands[i].handler(line, device);
+            break;
+        }
+    }
+
+    if (i == sizeof(commands)/sizeof(*commands)) {
+        fprintf(stderr, "invalid input: %s\n", line);
+    }
+
+    if (line) {
+        free(line);
+    }
 }
 
 // Application entry point.
@@ -127,6 +176,9 @@ int main(int argc, char **argv)
 {
     int status;
 
+    // Open the serial device, which will grant this process exlusive access.
+    // This will prevent multiple processes from accessing the zed/bbb
+    // interface simultaneously.
     serial_t serial;
     status = serial_init(&serial);
     if (status) {
@@ -135,6 +187,20 @@ int main(int argc, char **argv)
     }
     serial.read_timeout_ms = 1250;
 
-    process_sensor_read(&serial);
+    // Wait for input with no timeout.
+    // We'll process commands until something fails.
+    fd_set set;
+    FD_ZERO(&set);
+    FD_SET(STDIN_FILENO, &set);
+
+    for (;;) {
+        status = select(STDIN_FILENO+1, &set, 0, 0, 0);
+        if (status == -1) {
+            fprintf(stderr, "selected failed %d\n", errno);
+            return errno;
+        }
+        process_input(&serial);
+    }
+
     return 0;
 }
