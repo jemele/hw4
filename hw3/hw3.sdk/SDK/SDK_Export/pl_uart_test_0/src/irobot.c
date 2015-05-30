@@ -32,6 +32,10 @@ int irobot_initialize(irobot_t *device)
     }
     uart_recv_flush(&device->uart);
     irobot_sensor_initialize(&device->sensor);
+
+    device->rate = 0;
+    device->direction = direction_forward;
+
     return 0;
 }
 
@@ -120,6 +124,10 @@ void irobot_rotate_left(irobot_t *device)
     // Wait for the program to complete.
     // Ideally, this would be derived from the rotational velocity.
     usleep(1000 * 1000);
+
+    // Track our direction.
+    device->direction -= 1;
+    device->direction %= direction_count;
 }
 
 // Rotate right.
@@ -143,6 +151,10 @@ void irobot_rotate_right(irobot_t *device)
     // Wait for the program to complete.
     // Ideally, this would be derived from the rotational velocity.
     usleep(1000 * 1000);
+
+    // Track our direction.
+    device->direction += 1;
+    device->direction %= direction_count;
 }
 
 #define abs(x) ((x<0)?-x:x)

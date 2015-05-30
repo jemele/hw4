@@ -11,11 +11,14 @@ static void usage()
 {
     printf("usage: \n\
 Q: quit the program \n\
-I: query and print sensor info\n\
+f: foward\n\
+l: left\n\
+r: right\n\
+s: stop\n\
+i: sensor\n\
 P: passive mode\n\
-E: safe mode\n\
-L: full mode\n\
-F: forward\n\
+S: safe mode\n\
+F: full mode\n\
 ?: help\n"); 
 }
 
@@ -31,37 +34,52 @@ static void process_console(irobot_t *irobot)
         printf("goodbye\n");
         exit(0);
 
-    case 'F':
+    // Movement
+    case 'f':
         printf("forward\n");
         irobot_drive_straight(irobot,10);
         return;
 
-    case 'S':
+    case 'l':
+        printf("left\n");
+        irobot_rotate_left(irobot);
+        return;
+
+    case 'r':
+        printf("right\n");
+        irobot_rotate_right(irobot);
+        return;
+
+    case 's':
         printf("stop\n");
         irobot_drive_straight(irobot,0);
         return;
 
-    case 'I':
+    // Sensing
+    case 'i':
         printf("reading sensor\n");
         irobot_read_sensor(irobot);
-        printf("irobot: time %llu bumper %d wall %d rate %d\n",
+        printf("irobot: time %llu bumper %d wall %d rate %d direction %d (%s)\n",
                 irobot->sensor.timestamp,
                 irobot->sensor.bumper,
                 irobot->sensor.wall,
-                irobot->rate);
+                irobot->rate,
+                irobot->direction,
+                direction_t_to_string(irobot->direction));
         return;
 
+    // Modes
     case 'P':
         printf("passive mode\n");
         irobot_passive_mode(irobot);
         return;
 
-    case 'E':
+    case 'S':
         printf("safe mode\n");
         irobot_safe_mode(irobot);
         return;
 
-    case 'L':
+    case 'F':
         printf("full mode\n");
         irobot_full_mode(irobot);
         return;
@@ -114,10 +132,43 @@ static void process_bbb_id_sensor_read(uart_axi_t *uart, irobot_t *irobot)
     bbb_id_sensor_data_t message = {
         .bumper = irobot->sensor.bumper,
         .wall = irobot->sensor.wall,
+        .rate = irobot->rate,
+        .direction = irobot->direction,
     };
     uart_axi_sendv(uart, (u8*)&header, sizeof(header));
     uart_axi_sendv(uart, (u8*)&message, sizeof(message));
 }
+
+// Issue a rotate left command and respond with an ack.
+static void process_bbb_id_rotate_left(uart_axi_t *uart, irobot_t *robot)
+{
+    printf("bbb: rotate left\n");
+
+    irobot_rotate_left(robot);
+
+    bbb_header_t header = {
+        .magic = bbb_header_magic_value,
+        .version = bbb_header_version_value,
+        .id = bbb_id_ack,
+    };
+    uart_axi_sendv(uart, (u8*)&header, sizeof(header));
+}
+
+// Issue a rotate right command and respond with an ack.
+static void process_bbb_id_rotate_right(uart_axi_t *uart, irobot_t *robot)
+{
+    printf("bbb: rotate right\n");
+
+    irobot_rotate_right(robot);
+
+    bbb_header_t header = {
+        .magic = bbb_header_magic_value,
+        .version = bbb_header_version_value,
+        .id = bbb_id_ack,
+    };
+    uart_axi_sendv(uart, (u8*)&header, sizeof(header));
+}
+
 
 // Process bbb input.
 // After a character arrives, the function will block until all message data is
@@ -161,6 +212,12 @@ static void process_bbb(uart_axi_t *uart, irobot_t *irobot)
         break;
     case bbb_id_sensor_read:
         process_bbb_id_sensor_read(uart, irobot);
+        break;
+    case bbb_id_rotate_left:
+        process_bbb_id_rotate_left(uart, irobot);
+        break;
+    case bbb_id_rotate_right:
+        process_bbb_id_rotate_right(uart, irobot);
         break;
     default:
         printf("bbb: invalid id %d\n", header.id);
@@ -226,6 +283,10 @@ int main()
         printf("irobot_initialize failed %d\n", status);
         return status;
     }
+
+    // Power on the robot.
+    irobot_passive_mode(&irobot);
+    irobot_full_mode(&irobot);
 
     // Give users a fighting chance.
     usage();

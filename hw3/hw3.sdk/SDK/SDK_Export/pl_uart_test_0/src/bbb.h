@@ -38,6 +38,12 @@ enum bbb_id {
     // Used to indicate the command completed.
     bbb_id_ack              = 3,
 
+    // Turn left (CCW) 90 degrees.
+    bbb_id_rotate_left      = 4,
+
+    // Turn right (CW) 90 degress.
+    bbb_id_rotate_right     = 5,
+
     bbb_id_end,
     bbb_id_begin = bbb_id_drive_straight,
 };
@@ -50,6 +56,8 @@ typedef struct {
 typedef struct {
     uint8_t bumper;
     uint8_t wall;
+    int16_t rate;
+    uint8_t direction;
 } bbb_id_sensor_data_t;
 
 #endif
