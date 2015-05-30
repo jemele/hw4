@@ -93,10 +93,6 @@ void irobot_read_sensor(irobot_t *device)
     device->sensor.bumper = d[0] & 0x3;
     device->sensor.wall = d[1];
     device->sensor.distance = (d[2]<<8)|d[3];
-    printf("direction %d %s distance %d\n",
-            device->direction,
-            direction_t_to_string(device->direction),
-            device->sensor.distance);
 
     // Accumulate the distance travelled.
     switch (device->direction) {
