@@ -197,6 +197,67 @@ out:
     pthread_mutex_unlock(&device->lock);
 }
 
+// Move forward. If the robot hits an obstacle, it will stop on its own.
+// We'll need to poll the robot sensor data so we can alert the connected
+// client when an obstacle is hit.
+void process_forward(const char *line, serial_t *device)
+{
+    int status;
+
+    // Get the rate if available.
+    int rate;
+    status = sscanf(line, "%d", &rate);
+    if (status != 1) {
+        fprintf(stderr, "invalid rate:%s\n", line);
+        return;
+    }
+
+    // Serialize access to the device.
+    pthread_mutex_lock(&device->lock);
+
+    // Write the header, then the message data.
+    bbb_header_t header = {
+        .magic = bbb_header_magic_value,
+        .version = bbb_header_version_value,
+        .id = bbb_id_drive_straight,
+    };
+    status = write(device->fd, &header, sizeof(header));
+    if (status == -1) {
+        fprintf(stderr, "write failed %d\n", errno);
+        goto out;
+    }
+    if (status != sizeof(header)) {
+        fprintf(stderr, "write failed %d %d\n", status, sizeof(header));
+        goto out;
+    }
+    bbb_id_drive_straight_t message = {
+        .rate = rate,
+    };
+    status = write(device->fd, &message, sizeof(message));
+    if (status == -1) {
+        fprintf(stderr, "write failed %d\n", errno);
+        goto out;
+    }
+    if (status != sizeof(message)) {
+        fprintf(stderr, "write failed %d %d\n", status, sizeof(message));
+        goto out;
+    }
+
+    // Read the header.
+    status = serial_read(device, &header, sizeof(header));
+    if (status != sizeof(header)) {
+        fprintf(stderr, "read failed %d %d\n", status, errno);
+        goto out;
+    }
+    if (header.id != bbb_id_ack) {
+        fprintf(stderr, "invalid message %d\n", header.id);
+        goto out;
+    }
+
+out:
+    pthread_mutex_unlock(&device->lock);
+}
+
 // The command handlers.
 typedef void(*handler_t)(const char*, serial_t*);
 typedef struct {
@@ -205,6 +266,7 @@ typedef struct {
 } command_t;
 command_t commands[] = {
     { .name = "sensor",     .handler = process_sensor_read },
+    { .name = "forward",    .handler = process_forward },
     { .name = "left",       .handler = process_left },
     { .name = "right",      .handler = process_right },
     { .name = "quit",       .handler = process_quit },
@@ -232,8 +294,8 @@ void process_input(serial_t *device)
     // commands.
     int i;
     for (i = 0; i < sizeof(commands)/sizeof(*commands); ++i) {
-        if (!strncmp(line, commands[i].name, sizeof(commands[i].name))) {
-            commands[i].handler(line, device);
+        if (!strncmp(line, commands[i].name, strlen(commands[i].name))) {
+            commands[i].handler(line+strlen(commands[i].name), device);
             break;
         }
     }
