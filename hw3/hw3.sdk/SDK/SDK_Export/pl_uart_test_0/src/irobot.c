@@ -23,11 +23,17 @@ int irobot_initialize(irobot_t *device)
     uart_recv_flush(&device->uart);
     irobot_sensor_initialize(&device->sensor);
 
+    // Program a song ...
+    const u8 c[] = {140,0,4,62,12,66,12,69,12,74,36};
+    uart_sendv(&device->uart,c,sizeof(c));
+
+    // Finally, reset sensor data.
     device->rate = 0;
     device->direction = direction_forward;
     device->x = 0;
     device->y = 0;
 
+    // And all is well.
     return 0;
 }
 

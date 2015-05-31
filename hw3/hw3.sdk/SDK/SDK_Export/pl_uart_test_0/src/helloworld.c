@@ -173,6 +173,21 @@ static void process_bbb_id_rotate_right(uart_axi_t *uart, irobot_t *robot)
     uart_axi_sendv(uart, (u8*)&header, sizeof(header));
 }
 
+// Play song 0, which should have been programmed during initialization.
+static void process_bbb_id_play_song(uart_axi_t *uart, irobot_t *robot)
+{
+    printf("bbb: play song\n");
+
+    irobot_play_song(robot,0);
+
+    bbb_header_t header = {
+        .magic = bbb_header_magic_value,
+        .version = bbb_header_version_value,
+        .id = bbb_id_ack,
+    };
+    uart_axi_sendv(uart, (u8*)&header, sizeof(header));
+}
+
 
 // Process bbb input.
 // After a character arrives, the function will block until all message data is
@@ -218,6 +233,9 @@ static void process_bbb(uart_axi_t *uart, irobot_t *irobot)
         break;
     case bbb_id_rotate_right:
         process_bbb_id_rotate_right(uart, irobot);
+        break;
+    case bbb_id_play_song:
+        process_bbb_id_play_song(uart, irobot);
         break;
     default:
         printf("bbb: invalid id %d\n", header.id);

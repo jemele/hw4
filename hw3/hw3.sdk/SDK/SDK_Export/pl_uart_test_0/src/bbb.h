@@ -44,6 +44,9 @@ enum bbb_id {
     // Turn right (CW) 90 degress.
     bbb_id_rotate_right     = 5,
 
+    // Play a song.
+    bbb_id_play_song        = 6,
+
     bbb_id_end,
     bbb_id_begin = bbb_id_drive_straight,
 };
