@@ -80,11 +80,8 @@ static int serial_read(serial_t *device, void *b, int n)
 
 // Read the sensor data into the device.
 // Return zero on success, non-zero on failure.
-static int sensor_read(serial_t *device)
+static int irobot_sensor(serial_t *device)
 {
-    // Assume success!
-    int status = 0;
-
     // Serialize access to the device.
     pthread_mutex_lock(&device->lock);
 
@@ -93,9 +90,10 @@ static int sensor_read(serial_t *device)
         .version = bbb_header_version_value,
         .id = bbb_id_sensor_read,
     };
-    status = write(device->fd, &header, sizeof(header));
+    int status = write(device->fd, &header, sizeof(header));
     if (status == -1) {
         fprintf(stderr, "write failed %d\n", errno);
+        status = -1;
         goto out;
     }
     if (status != sizeof(header)) {
@@ -137,9 +135,9 @@ out:
 // Process a sensor read request.
 static void process_sensor_read(const char *input, serial_t *device)
 {
-    int status = sensor_read(device);
+    int status = irobot_sensor(device);
     if (status) {
-        fprintf(stderr, "sensor_read failed %d\n", status);
+        fprintf(stderr, "irobot_sensor failed %d\n", status);
         return;
     }
 
@@ -160,7 +158,8 @@ static void process_quit(const char *line, serial_t *device)
 }
 
 // Turn left.
-static void process_left(const char *line, serial_t *device)
+// Return zero on success, non-zero on failure.
+static int irobot_left(serial_t *device)
 {
     // Serialize access to the device.
     pthread_mutex_lock(&device->lock);
@@ -173,10 +172,12 @@ static void process_left(const char *line, serial_t *device)
     int status = write(device->fd, &header, sizeof(header));
     if (status == -1) {
         fprintf(stderr, "write failed %d\n", errno);
+        status = -1;
         goto out;
     }
     if (status != sizeof(header)) {
         fprintf(stderr, "write failed %d %d\n", status, sizeof(header));
+        status = -1;
         goto out;
     }
 
@@ -184,19 +185,36 @@ static void process_left(const char *line, serial_t *device)
     status = serial_read(device, &header, sizeof(header));
     if (status != sizeof(header)) {
         fprintf(stderr, "read failed %d %d\n", status, errno);
+        status = -1;
         goto out;
     }
     if (header.id != bbb_id_ack) {
         fprintf(stderr, "invalid message %d\n", header.id);
+        status = -1;
         goto out;
     }
 
+    // And all is well.
+    status = 0;
+
 out:
     pthread_mutex_unlock(&device->lock);
+    return status;
+}
+
+// Process a turn left message.
+static void process_left(const char *line, serial_t *device)
+{
+    int status = irobot_left(device);
+    if (status) {
+        fprintf(stderr, "irobot_left failed %d\n", status);
+        return;
+    }
 }
 
 // Turn right.
-static void process_right(const char *line, serial_t *device)
+// Return zero on success, non-zero on failure.
+static int irobot_right(serial_t *device)
 {
     // Serialize access to the device.
     pthread_mutex_lock(&device->lock);
@@ -209,10 +227,12 @@ static void process_right(const char *line, serial_t *device)
     int status = write(device->fd, &header, sizeof(header));
     if (status == -1) {
         fprintf(stderr, "write failed %d\n", errno);
+        status = -1;
         goto out;
     }
     if (status != sizeof(header)) {
         fprintf(stderr, "write failed %d %d\n", status, sizeof(header));
+        status = -1;
         goto out;
     }
 
@@ -220,15 +240,90 @@ static void process_right(const char *line, serial_t *device)
     status = serial_read(device, &header, sizeof(header));
     if (status != sizeof(header)) {
         fprintf(stderr, "read failed %d %d\n", status, errno);
+        status = -1;
         goto out;
     }
     if (header.id != bbb_id_ack) {
         fprintf(stderr, "invalid message %d\n", header.id);
+        status = -1;
         goto out;
     }
 
+    // And all is well.
+    status = 0;
+
 out:
     pthread_mutex_unlock(&device->lock);
+    return status;
+}
+
+// Process a turn right message.
+static void process_right(const char *line, serial_t *device)
+{
+    int status = irobot_right(device);
+    if (status) {
+        fprintf(stderr, "irobot_right failed %d\n", status);
+        return;
+    }
+}
+
+// Move forward at the specified rate.
+// Return zero on success, non-zero on failure.
+static int irobot_forward(serial_t *device, int rate)
+{
+    // Serialize access to the device.
+    pthread_mutex_lock(&device->lock);
+
+    // Write the header, then the message data.
+    bbb_header_t header = {
+        .magic = bbb_header_magic_value,
+        .version = bbb_header_version_value,
+        .id = bbb_id_drive_straight,
+    };
+    int status = write(device->fd, &header, sizeof(header));
+    if (status == -1) {
+        fprintf(stderr, "write failed %d\n", errno);
+        status = -1;
+        goto out;
+    }
+    if (status != sizeof(header)) {
+        fprintf(stderr, "write failed %d %d\n", status, sizeof(header));
+        status = -1;
+        goto out;
+    }
+    bbb_id_drive_straight_t message = {
+        .rate = rate,
+    };
+    status = write(device->fd, &message, sizeof(message));
+    if (status == -1) {
+        fprintf(stderr, "write failed %d\n", errno);
+        status = -1;
+        goto out;
+    }
+    if (status != sizeof(message)) {
+        fprintf(stderr, "write failed %d %d\n", status, sizeof(message));
+        status = -1;
+        goto out;
+    }
+
+    // Read the header.
+    status = serial_read(device, &header, sizeof(header));
+    if (status != sizeof(header)) {
+        fprintf(stderr, "read failed %d %d\n", status, errno);
+        status = -1;
+        goto out;
+    }
+    if (header.id != bbb_id_ack) {
+        fprintf(stderr, "invalid message %d\n", header.id);
+        status = -1;
+        goto out;
+    }
+
+    // And all is well.
+    status = 0;
+out:
+    pthread_mutex_unlock(&device->lock);
+    return status;
 }
 
 // Move forward. If the robot hits an obstacle, it will stop on its own.
@@ -246,54 +341,15 @@ static void process_forward(const char *line, serial_t *device)
         return;
     }
 
-    // Serialize access to the device.
-    pthread_mutex_lock(&device->lock);
-
-    // Write the header, then the message data.
-    bbb_header_t header = {
-        .magic = bbb_header_magic_value,
-        .version = bbb_header_version_value,
-        .id = bbb_id_drive_straight,
-    };
-    status = write(device->fd, &header, sizeof(header));
-    if (status == -1) {
-        fprintf(stderr, "write failed %d\n", errno);
-        goto out;
+    // Move forward.
+    status = irobot_forward(device, rate);
+    if (status) {
+        fprintf(stderr, "irobot_forward failed %d\n", status);
+        return;
     }
-    if (status != sizeof(header)) {
-        fprintf(stderr, "write failed %d %d\n", status, sizeof(header));
-        goto out;
-    }
-    bbb_id_drive_straight_t message = {
-        .rate = rate,
-    };
-    status = write(device->fd, &message, sizeof(message));
-    if (status == -1) {
-        fprintf(stderr, "write failed %d\n", errno);
-        goto out;
-    }
-    if (status != sizeof(message)) {
-        fprintf(stderr, "write failed %d %d\n", status, sizeof(message));
-        goto out;
-    }
-
-    // Read the header.
-    status = serial_read(device, &header, sizeof(header));
-    if (status != sizeof(header)) {
-        fprintf(stderr, "read failed %d %d\n", status, errno);
-        goto out;
-    }
-    if (header.id != bbb_id_ack) {
-        fprintf(stderr, "invalid message %d\n", header.id);
-        goto out;
-    }
-
-out:
-    pthread_mutex_unlock(&device->lock);
 }
 
 // Go to the goal specified by x,y.
-// This relies on the polling context to service the necessary commands.
 static void process_goto(const char *line, serial_t *device)
 {
     int status;
@@ -304,9 +360,11 @@ static void process_goto(const char *line, serial_t *device)
         fprintf(stderr, "invalid goto:%s\n", line);
         return;
     }
-    fprintf(stderr, "goto: %d,%d\n", x, y);
 
-    // XXX go to the actual goal
+    // Stop.
+    // Calculate delta.
+    // Calculate moves.
+    // Walk through moves.
 }
 
 // The command handlers.
@@ -367,6 +425,7 @@ static void process_input(serial_t *device)
 // notify the client.
 static void* sensor_thread_handler(void *context)
 {
+    int status;
     serial_t *device = (serial_t*)context;
 
     // Poll sensor data until told to die.
@@ -376,7 +435,7 @@ static void* sensor_thread_handler(void *context)
 
         // Read the sensor data.
         // If we hit an obstacle, notify the connected client.
-        int status = sensor_read(device);
+        status = irobot_sensor(device);
         if (!status) {
             if (device->sensor_data.bumper || device->sensor_data.wall) {
                 fprintf(stderr, "obstacle: x %d y %d\n",
