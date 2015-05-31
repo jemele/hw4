@@ -437,10 +437,12 @@ static void process_goto(const char *line, serial_t *device)
     case 'L': irobot_left(device); break;
     case 'R': irobot_right(device); break;
     }
+    sleep(1);
     }
 
     // Move forward and poll to see when we complete.
     // If we complete, stop.
+    sleep(1);
     status = irobot_forward(device, 20);
     if (status) {
         fprintf(stderr, "irobot_forward failed %d\n", status);
@@ -473,10 +475,12 @@ static void process_goto(const char *line, serial_t *device)
     case 'L': irobot_left(device); break;
     case 'R': irobot_right(device); break;
     }
+    sleep(1);
     }
 
     // Move forward and poll to see when we complete.
     // If we complete, stop.
+    sleep(1);
     status = irobot_forward(device, 20);
     if (status) {
         fprintf(stderr, "irobot_forward failed %d\n", status);
@@ -613,7 +617,7 @@ int main(int argc, char **argv)
         fprintf(stderr, "serial_init failed %d\n", status);
         return status;
     }
-    device.read_timeout_ms = 1250;
+    device.read_timeout_ms = 2000;
     device.sensor_poll_interval_ms = 1000;
 
     // Start the polling thread, used to indicate when an obstacle has been
