@@ -148,7 +148,6 @@ static void process_bbb_id_sensor_read(uart_axi_t *uart, irobot_t *irobot)
 static void process_bbb_id_rotate_left(uart_axi_t *uart, irobot_t *robot)
 {
     printf("bbb: rotate left\n");
-
     irobot_rotate_left(robot);
 
     bbb_header_t header = {
@@ -194,16 +193,12 @@ static void process_bbb(uart_axi_t *uart, irobot_t *irobot)
     putchar(c);
 #else
     // Read the header.
-    printf("reading header\n");
     bbb_header_t header;
     i = uart_axi_read(uart, &header, sizeof(header), 500);
     if (i != sizeof(header)) {
         printf("%s: read failed %d %d\n", __func__, i, sizeof(header));
         goto error;
     }
-
-    printf("magic %x version %x id %d\n",
-            header.magic, header.version, header.id);
     if ((header.magic != bbb_header_magic_value) ||
             (header.version != bbb_header_version_value)) {
         printf("invalid header\n");
@@ -229,9 +224,8 @@ static void process_bbb(uart_axi_t *uart, irobot_t *irobot)
         goto error;
     }
 
-    // Exit without error.
-    printf("message processed\n");
 #endif
+    // Exit without error.
     return;
 
     // We got here because there was an error.

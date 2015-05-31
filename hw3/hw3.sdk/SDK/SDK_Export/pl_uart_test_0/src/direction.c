@@ -30,7 +30,7 @@ void direction_rotation(int current, int next, char *rotation, int *count)
     }
     *rotation = ((delta < 0) ? 'L' : 'R');
     *count = abs(delta);
-    printf("%s->%s: %d%c\n", direction_t_to_string(current),
+    fprintf(stderr, "%s->%s: %d%c\n", direction_t_to_string(current),
             direction_t_to_string(next), *count, *rotation);
 }
 
@@ -49,7 +49,7 @@ int direction_from_delta(int dx, int dy)
     }
 
     // We should never get here
-    printf("panic: unknown direction!\n");
+    fprintf(stderr, "panic: unknown direction!\n");
     return direction_forward;
 }
 
