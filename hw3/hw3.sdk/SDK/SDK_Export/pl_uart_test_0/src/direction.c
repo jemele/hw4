@@ -30,8 +30,6 @@ void direction_rotation(int current, int next, char *rotation, int *count)
     }
     *rotation = ((delta < 0) ? 'L' : 'R');
     *count = abs(delta);
-    fprintf(stderr, "%s->%s: %d%c\n", direction_t_to_string(current),
-            direction_t_to_string(next), *count, *rotation);
 }
 
 // Calculate the final orientation of the robot given dx and dy.  This assumes
