@@ -351,6 +351,51 @@ static void process_forward(const char *line, serial_t *device)
     }
 }
 
+// Play song..
+// Return zero on success, non-zero on failure.
+static int irobot_song(serial_t *device)
+{
+    // Serialize access to the device.
+    pthread_mutex_lock(&device->lock);
+
+    bbb_header_t header = {
+        .magic = bbb_header_magic_value,
+        .version = bbb_header_version_value,
+        .id = bbb_id_play_song,
+    };
+    int status = write(device->fd, &header, sizeof(header));
+    if (status == -1) {
+        fprintf(stderr, "write failed %d\n", errno);
+        status = -1;
+        goto out;
+    }
+    if (status != sizeof(header)) {
+        fprintf(stderr, "write failed %d %d\n", status, sizeof(header));
+        status = -1;
+        goto out;
+    }
+
+    // Read the header.
+    status = serial_read(device, &header, sizeof(header));
+    if (status != sizeof(header)) {
+        fprintf(stderr, "read failed %d %d\n", status, errno);
+        status = -1;
+        goto out;
+    }
+    if (header.id != bbb_id_ack) {
+        fprintf(stderr, "invalid message %d\n", header.id);
+        status = -1;
+        goto out;
+    }
+
+    // And all is well.
+    status = 0;
+
+out:
+    pthread_mutex_unlock(&device->lock);
+    return status;
+}
+
 // Go to the goal specified by x,y.
 // This could *totally* be simplified, but there's little incentive to do so.
 // Does anyone actually read the code, or is this for my own edification?
@@ -454,7 +499,22 @@ static void process_goto(const char *line, serial_t *device)
     fprintf(stderr, "current position: x %d y %d\n",
             device->sensor_data.x, device->sensor_data.y);
 
-    // XXX Play the song.
+    // Play the song and all is well.
+    status = irobot_song(device);
+    if (status) {
+        fprintf(stderr, "irobot_song failed %d\n", status);
+        return;
+    }
+}
+
+// Process the play song message.
+static void process_song(const char *line, serial_t *device)
+{
+    int status = irobot_song(device);
+    if (status) {
+        fprintf(stderr, "irobot_song failed %d\n", status);
+        return;
+    }
 }
 
 // The command handlers.
@@ -469,6 +529,7 @@ command_t commands[] = {
     { .name = "left",       .handler = process_left },
     { .name = "right",      .handler = process_right },
     { .name = "goto",       .handler = process_goto },
+    { .name = "song",       .handler = process_song },
     { .name = "quit",       .handler = process_quit },
 };
 
