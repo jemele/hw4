@@ -10,6 +10,7 @@
 #include <unistd.h>
 #include <sys/select.h>
 #include "bbb.h"
+#include "direction.h"
 
 #define SERIAL_DEVICE "/dev/ttyO1"
 
@@ -24,6 +25,7 @@ typedef struct {
     int quit;
     pthread_t sensor_thread;
     bbb_id_sensor_data_t sensor_data;
+    int sensor_poll_interval_ms;
 
 } serial_t;
 
@@ -350,21 +352,109 @@ static void process_forward(const char *line, serial_t *device)
 }
 
 // Go to the goal specified by x,y.
+// This could *totally* be simplified, but there's little incentive to do so.
+// Does anyone actually read the code, or is this for my own edification?
 static void process_goto(const char *line, serial_t *device)
 {
-    int status;
-
-    int x, y;
+    int x, y, status;
     status = sscanf(line, "%d %d", &x, &y);
     if (status != 2) {
         fprintf(stderr, "invalid goto:%s\n", line);
         return;
     }
 
-    // Stop.
+    // Stop and read the sensor data.
+    status = irobot_forward(device, 0);
+    if (status) {
+        fprintf(stderr, "irobot_forward failed %d\n", status);
+        return;
+    }
+    status = irobot_sensor(device);
+    if (status) {
+        fprintf(stderr, "irobot_sensor failed %d\n", status);
+        return;
+    }
+
     // Calculate delta.
-    // Calculate moves.
-    // Walk through moves.
+    const int dx = x - device->sensor_data.x;
+    const int dy = y - device->sensor_data.y;
+
+    char r;
+    int direction, n, i;
+
+    // Rotate to complete dx.
+    if (dx) {
+    direction = (dx < 0) ? direction_left : direction_right;
+    direction_rotation(device->sensor_data.direction, direction, &r, &n);
+
+    for (i = 0; i < n; ++i) {
+    switch (r) {
+    case 'L': irobot_left(device); break;
+    case 'R': irobot_right(device); break;
+    }
+    }
+
+    // Move forward and poll to see when we complete.
+    // If we complete, stop.
+    status = irobot_forward(device, 20);
+    if (status) {
+        fprintf(stderr, "irobot_forward failed %d\n", status);
+        return;
+    }
+    for (;;) {
+        usleep(1000*device->sensor_poll_interval_ms);
+        if (((direction == direction_right) && (device->sensor_data.x > x)) ||
+                ((direction == direction_left) && (device->sensor_data.x < x))) {
+
+            status = irobot_forward(device, 0);
+            if (status) {
+                fprintf(stderr, "irobot_forward failed %d\n", status);
+                return;
+            }
+            break;
+        }
+    }
+    fprintf(stderr, "current position: x %d y %d\n",
+            device->sensor_data.x, device->sensor_data.y);
+    }
+
+    // Rotate to complete dy.
+    if (dy) {
+    direction = (dy < 0) ? direction_back : direction_forward;
+    direction_rotation(device->sensor_data.direction, direction, &r, &n);
+
+    for (i = 0; i < n; ++i) {
+    switch (r) {
+    case 'L': irobot_left(device); break;
+    case 'R': irobot_right(device); break;
+    }
+    }
+
+    // Move forward and poll to see when we complete.
+    // If we complete, stop.
+    status = irobot_forward(device, 20);
+    if (status) {
+        fprintf(stderr, "irobot_forward failed %d\n", status);
+        return;
+    }
+    for (;;) {
+        usleep(1000*device->sensor_poll_interval_ms);
+        if (((direction == direction_forward) && (device->sensor_data.y > y)) ||
+                ((direction == direction_back) && (device->sensor_data.y < y))) {
+
+            status = irobot_forward(device, 0);
+            if (status) {
+                fprintf(stderr, "irobot_forward failed %d\n", status);
+                return;
+            }
+            break;
+        }
+    }
+    }
+    fprintf(stderr, "current position: x %d y %d\n",
+            device->sensor_data.x, device->sensor_data.y);
+
+    // XXX Play the song.
 }
 
 // The command handlers.
@@ -430,7 +520,6 @@ static void* sensor_thread_handler(void *context)
 
     // Poll sensor data until told to die.
     // We poll rather slowly :)
-    static const int poll_interval_ms = 1000;
     while (!device->quit) {
 
         // Read the sensor data.
@@ -445,7 +534,7 @@ static void* sensor_thread_handler(void *context)
         }
 
         // Sleep until the next polling interval.
-        usleep(poll_interval_ms*1000);
+        usleep(1000*device->sensor_poll_interval_ms);
     }
 }
 
@@ -464,6 +553,7 @@ int main(int argc, char **argv)
         return status;
     }
     device.read_timeout_ms = 1250;
+    device.sensor_poll_interval_ms = 1000;
 
     // Start the polling thread, used to indicate when an obstacle has been
     // hit. If an obstacle is detected, the client will be notified.
